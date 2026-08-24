@@ -1,0 +1,174 @@
+Instalei varios pacotes teve o do express
+npm install express
+
+vou instalar para fazer a conexão com o banco de dados
+---npm install mysql2,
+
+
+
+packet json
+{
+  "name": "proback",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "express": "^5.2.1",
+    "mysql2": "^3.22.5"
+  }
+}
+
+baixei tambem o pacote do dotenv
+
+
+-- JÁ FOI FEITO O CADASTRO DO USUARIO, LOGIN E PROCURAR UM USUARIO
+
+-- PRECISA SER FEITO: PUBLICAR AS IDEIAS, OS COMENTARIOS, AS IDEIAS 
+AINDANÃO ESTA NO MODELO CORRETO COMO ESTAMOS INICIANDO O PROJETO DO BACK
+
+🔲 Comentar uma ideia
+
+POST /comentarios
+
+🔲 Listar comentários de uma ideia
+
+GET /ideias/:id/comentarios
+
+🔲 Curtir uma ideia
+
+POST /curtidas
+
+🔲 Ver minhas curtidas
+
+GET /usuarios/:id/curtidas
+
+🔲 Salvar rascunho
+
+POST /rascunhos
+
+🔲 Ver meus rascunhos
+
+GET /usuarios/:id/rascunhos
+
+🔲 Editar perfil
+
+PUT /usuarios/:id
+
+🔲 Excluir perfil
+
+DELETE /usuarios/:id
+
+
+POST /usuarios
+        │
+        ▼
+usuarioRoutes.js
+        │
+        ▼
+usuarioController.js
+        │
+        ▼
+usuarioService.js
+        │
+        ▼
+usuarioModel.js
+        │
+        ▼
+MySQL
+
+10/08/2026
+O QUE É O SUCESSO DA LOGIN.SERVICE, PARA QUE SERVE
+
+
+app.post("/login", async (req, res) => {
+  try {
+    const { email, senha } = req.body;
+    const [usuarios] = await env.db.query(
+      "SELECT * FROM USUARIOS WHERE EMAIL = ?",
+      [email],
+    );
+    if (usuarios.length === 0) {
+      return res.status(404).json({
+        erro: "Usuário não encontrado",
+      });
+    }
+    const usuario = usuarios[0]; //começa a lista no primeiro termo
+
+    if (usuario.SENHA !== senha) {
+      return res.status(401).json({
+        erro: "senha incorreta",
+      });
+    }
+    //aqui é quando der certo
+    res.status(200).json({
+      mensagem: "login realizado com sucesso",
+      //depois apagar isso
+      usuario: {
+        id: usuario.ID,
+        nome: usuario.NOME,
+        email: usuario.EMAIL,
+      },
+    });
+  } catch (erro) {
+    console.error(erro);
+    res.status(500).json({
+      erro: "erro ao realizar login ",
+    });
+  }
+});
+
+
+parei na parte que sobre publicar o comentario
+
+
+       ☑  
+
+USUÁRIOS
+☑ POST /usuarios
+☑ POST /login
+☑ GET /usuarios
+☑ GET /usuarios/:id
+☑ PUT /usuarios/:id
+☑ DELETE /usuarios/:id
+
+IDEIAS
+☑ POST /ideias
+☑ GET /ideias
+☑ GET /ideias/:id
+☑ PUT /ideias/:id
+☑ DELETE /ideias/:id
+☑ GET /usuarios/:id/ideias
+
+COMENTÁRIOS
+☑ POST /comentarios
+☑ GET /ideias/:id/comentarios
+☑ PUT /comentarios/:id
+☑ DELETE /comentarios/:id
+
+CURTIDAS
+☐ POST
+☐ GET
+☐ DELETE
+
+UPLOAD
+☐ imagem
+
+E-MAIL
+☐ envio
+
+SEGURANÇA
+☐ bcrypt
+☐ JWT
+☐ middleware
+
+
+VAMOS FAZER O LOGIN
+-- arrumar o erro de digitação
+-- instalar o pacote jsonwebtoken
