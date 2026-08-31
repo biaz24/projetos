@@ -1,0 +1,226 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.container {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    height: calc(100vh - 60px);
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, .08);
+    overflow: hidden;
+}
+
+.card{
+    max-width: 500px;
+    height: auto;
+    width: 100%; 
+    background-color: #fff;
+    border-radius: 20px;
+    padding: 50px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, .1);
+}
+
+.card h2{
+    color: #1e3a8a;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.card p{
+    color: #666;
+    margin-bottom: 35px;
+    text-align: center;
+}
+
+.card form{
+    display: flex;
+    flex-direction: column;
+}
+
+.imagem-login{
+    width:100%;
+    max-width: 420px;
+    margin-top: 30px;
+}
+
+.left{
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px;
+}
+
+.logo {
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 40px;
+    color: #1e3a8a;
+    position: relative;
+    top: 30px;
+}
+
+.left h1{
+    font-size: 42px;
+    margin-bottom: 20px;
+    color: #1e3a8a
+}
+
+.left p{
+    line-height: 25px;
+    margin-bottom: 40px;
+    color: #666
+}
+
+.right{
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 50px;
+    background-color: #fff;
+    min-width: 0;
+}
+
+label {
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.input-box {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.input-box i {
+    color: #253b79;
+    flex-shrink: 0;
+}
+
+.input-box input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    font-size: 15px;
+}
+
+.forgot{
+    text-decoration: none;
+    color: #3f6eef;
+    margin-bottom: 25px;
+    font-size: 14px;
+}
+
+button{
+    background: #1e3a8a;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.register{
+    text-align: center;
+    margin-top: 25px;
+}
+
+.register a{
+    color: #1e3a8a;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.card p b {
+    color: #3f6eef;
+}
+
+#message {
+    margin-top: 15px;
+    margin-bottom: 0;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.divisa {
+    height: 1px;
+    background-color: #ddd;
+    margin-top: 25px;
+}
+
+@media (max-width: 1100px) {
+    .left {
+        padding: 40px;
+    }
+
+    .right {
+        padding: 25px;
+    }
+
+    .left h1 {
+        font-size: 38px;
+    }
+
+    .left p {
+        font-size: 17px;
+    }
+
+    .card {
+        padding: 30px;
+        max-width: 400px;
+    }
+
+    .card h2 {
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 700px) {
+    .container {
+        height: auto;
+        flex-direction: column;
+        min-height: 100vh;
+        border-radius: 0;
+    }
+
+    .left {
+        padding: 40px 25px;
+        text-align: center;
+    }
+
+    .left h1 {
+        font-size: 36px;
+    }
+
+    .left p {
+        font-size: 16px;
+    }
+
+    .imagem-login {
+        max-width: 280px;
+        margin: 20px auto 0;
+    }
+
+    .right {
+        padding: 25px;
+    }
+
+    .card {
+        max-width: 100%;
+        padding: 30px 25px;
+    }
+}

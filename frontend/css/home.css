@@ -1,0 +1,431 @@
+/* =========================
+   CONFIGURAÇÕES GERAIS
+========================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    width: 100%;
+    height: 100vh;
+    margin: 0;
+    background: #f3f5f9;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #123b82;
+    overflow: hidden;
+}
+
+
+/* =========================
+   CONTAINER PRINCIPAL
+========================= */
+
+.home-container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    background: white;
+}
+
+
+/* =========================
+   MENU LATERAL
+========================= */
+
+.sidebar {
+    width: 200px;
+    height: 100vh;
+    background: #07327c;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 25px 18px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 28px;
+}
+
+.logo i {
+    font-size: 21px;
+}
+
+
+/* =========================
+   MENU
+========================= */
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 10px;
+    border-radius: 5px;
+
+    color: white;
+    text-decoration: none;
+    font-size: 12px;
+
+    transition: 0.2s;
+}
+
+.menu-item i {
+    width: 14px;
+}
+
+.menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-item.active {
+    background: #1654b8;
+}
+
+
+/* =========================
+   SAIR
+========================= */
+
+.logout {
+    margin-top: auto;
+    padding: 12px 10px;
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    color: white;
+    text-decoration: none;
+
+    font-size: 12px;
+
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+
+/* =========================
+   ÁREA PRINCIPAL
+========================= */
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* =========================
+   BARRA SUPERIOR
+========================= */
+.topbar {
+    height: 48px;
+
+    border-bottom: 1px solid #e6eaf0;
+
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+
+    padding: 0 20px;
+}
+
+/* Sino + usuário */
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+/* Botão de notificação */
+.notification-button {
+    border: none;
+    background: transparent;
+    color: #123b82;
+
+    font-size: 16px;
+
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-button:hover {
+    color: #1654b8;
+}
+
+.user-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    color: #123b82;
+    font-size: 11px;
+}
+
+.user-icon {
+    width: 22px;
+    height: 22px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: #e9eef8;
+    border-radius: 50%;
+
+    font-size: 11px;
+}
+
+.user-area > i {
+    font-size: 8px;
+    margin-left: 3px;
+}
+
+
+/* =========================
+   CONTEÚDO
+========================= */
+
+.content {
+    flex: 1;
+    padding: 25px 40px;
+    position: relative;
+}
+
+.content h1 {
+    font-size: 21px;
+    margin-bottom: 17px;
+}
+
+.content h2 {
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+.description {
+    color: #71809b;
+    font-size: 11px;
+    line-height: 17px;
+    max-width: 570px;
+    margin-bottom: 15px;
+}
+
+
+/* =========================
+   CAIXA DA IDEIA
+========================= */
+
+.idea-box {
+    position: relative;
+
+    width: 100%;
+    height: 190px;
+
+    border: 1px solid #dce3ed;
+    border-radius: 6px;
+
+    background: white;
+}
+
+.idea-box textarea {
+    width: 100%;
+    height: 100%;
+
+    padding: 14px;
+
+    resize: none;
+
+    border: none;
+    outline: none;
+
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+
+    color: #333;
+}
+
+.idea-box textarea::placeholder {
+    color: #9aa8bd;
+}
+
+.counter {
+    position: absolute;
+
+    right: 14px;
+    bottom: 12px;
+
+    color: #8090aa;
+    font-size: 10px;
+}
+
+
+/* =========================
+   PUBLICAÇÃO
+========================= */
+
+.publication {
+    margin-top: 20px;
+}
+
+.publication-title {
+    font-size: 11px;
+    margin-bottom: 8px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    margin-bottom: 10px;
+
+    cursor: pointer;
+}
+
+.radio-option input {
+    margin-top: 2px;
+    accent-color: #2161c5;
+}
+
+.radio-option span {
+    display: flex;
+    flex-direction: column;
+}
+
+.radio-option strong {
+    font-size: 11px;
+    font-weight: normal;
+    color: #123b82;
+}
+
+.radio-option small {
+    margin-top: 3px;
+    font-size: 9px;
+    color: #7d8ca5;
+}
+
+
+/* =========================
+   BOTÃO
+========================= */
+
+.publish-button {
+    position: absolute;
+
+    right: 40px;
+    bottom: 25px;
+
+    padding: 11px 15px;
+
+    border: none;
+    border-radius: 5px;
+
+    background: #07327c;
+    color: white;
+
+    font-size: 11px;
+
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    transition: 0.2s;
+}
+
+.publish-button:hover {
+    background: #1654b8;
+}
+
+
+/* =========================
+   RODAPÉ
+========================= */
+
+footer {
+    height: 50px;
+
+    border-top: 1px solid #e6eaf0;
+
+    padding: 0 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    color: #6f7f99;
+    font-size: 9px;
+}
+
+.footer-links {
+    display: flex;
+    gap: 22px;
+}
+
+.footer-links a {
+    color: #1654b8;
+    text-decoration: none;
+}
+
+
+@media (max-width: 768px) {
+    .home-container {
+        width: 100%;
+        margin: 0;
+    }
+
+    .mobile-toggle {
+        display: block !important;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 220px;
+        transform: translateX(-100%);
+        z-index: 100;
+        box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+    }
+
+    .sidebar.mobile-active {
+        transform: translateX(0);
+    }
+
+    .content {
+        padding: 16px;
+    }
+
+    .publish-button {
+        position: static;
+        margin-top: 15px;
+        width: 100%;
+        justify-content: center;
+    }
+
+    footer {
+        padding: 15px;
+        height: auto;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+}

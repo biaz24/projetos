@@ -1,0 +1,441 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body {
+    background: #F8FAFC;
+    font-family: Arial, sans-serif;
+}
+
+/* =========================
+   CONTAINER
+========================= */
+
+.container {
+    width: calc(100% - 20px);
+    max-width: 1500px;
+
+    height: calc(100vh - 28px);
+    max-height: 820px;
+
+    margin: 14px auto;
+
+    display: flex;
+
+    background: #fff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+
+    overflow: hidden;
+}
+
+/* =========================
+   LADO ESQUERDO
+========================= */
+
+.left {
+    width: 50%;
+
+    padding: 0 76px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    min-width: 0;
+}
+
+.logo {
+    margin-bottom: 45px;
+}
+
+.logo span {
+    color: #234394;
+
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.left h1 {
+    color: #1e3a8a;
+
+    font-size: 42px;
+    line-height: 1.15;
+
+    margin-bottom: 20px;
+}
+
+.left p {
+    color: #555;
+
+    font-size: 18px;
+    line-height: 25px;
+
+    margin-bottom: 25px;
+}
+
+/* =========================
+   IMAGEM
+========================= */
+
+.imagem-recuperacao {
+    display: block;
+
+    width: 500px;
+    max-width: 100%;
+
+    height: auto;
+
+    max-height: 430px;
+
+    object-fit: contain;
+
+    margin: 5px auto 0;
+}
+
+/* =========================
+   LADO DIREITO
+========================= */
+
+.right {
+    width: 50%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 40px;
+
+    background: #fff;
+
+    min-width: 0;
+}
+
+/* =========================
+   CARD
+========================= */
+
+.card {
+    width: 100%;
+
+    /*
+       Mesmo tamanho aproximado
+       do card da tela de login
+    */
+    max-width: 615px;
+
+    padding: 50px 63px;
+
+    background-color: #fff;
+
+    border-radius: 24px;
+
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.08);
+}
+
+/* =========================
+   TÍTULO DO CARD
+========================= */
+
+.card h2 {
+    color: #1e3a8a;
+
+    font-size: 30px;
+    line-height: 36px;
+
+    margin-bottom: 10px;
+
+    text-align: center;
+}
+
+.card p {
+    color: #555;
+
+    font-size: 18px;
+    line-height: 22px;
+
+    margin-bottom: 40px;
+
+    text-align: center;
+}
+
+/* =========================
+   FORMULÁRIO
+========================= */
+
+.card form {
+    display: flex;
+    flex-direction: column;
+}
+
+form label {
+    display: block;
+
+    color: #111;
+
+    font-size: 17px;
+
+    margin-bottom: 10px;
+}
+
+/* =========================
+   INPUT
+========================= */
+
+.input-box {
+    width: 100%;
+    height: 52px;
+
+    display: flex;
+    align-items: center;
+
+    border: 1px solid #ddd;
+    border-radius: 12px;
+
+    padding: 0 14px;
+
+    margin-bottom: 25px;
+}
+
+.input-box i {
+    color: #777;
+
+    font-size: 18px;
+
+    flex-shrink: 0;
+
+    margin-right: 12px;
+}
+
+.input-box input {
+    width: 100%;
+    height: 100%;
+
+    min-width: 0;
+
+    border: none;
+    outline: none;
+
+    font-size: 16px;
+}
+
+.input-box input::placeholder {
+    color: #999;
+}
+
+/* =========================
+   BOTÃO
+========================= */
+
+button {
+    width: 100%;
+    height: 56px;
+
+    background: #1e3a8a;
+
+    color: white;
+
+    border: none;
+    border-radius: 10px;
+
+    padding: 14px;
+
+    cursor: pointer;
+
+    font-size: 16px;
+
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #16306f;
+}
+
+/* =========================
+   VOLTAR
+========================= */
+
+.register {
+    text-align: center;
+
+    margin-top: 25px;
+}
+
+.register a {
+    color: #1e3a8a;
+
+    text-decoration: none;
+
+    font-weight: bold;
+
+    font-size: 14px;
+}
+
+.register a:hover {
+    text-decoration: underline;
+}
+
+/* =========================
+   TABLETS
+========================= */
+
+@media (max-width: 1000px) {
+
+    .container {
+        width: calc(100% - 40px);
+        height: calc(100vh - 40px);
+
+        max-width: none;
+        max-height: none;
+
+        margin: 20px auto;
+    }
+
+    .left {
+        padding: 0 40px;
+    }
+
+    .right {
+        padding: 30px;
+    }
+
+    .card {
+        padding: 40px;
+    }
+
+    .left h1 {
+        font-size: 38px;
+    }
+
+    .left p {
+        font-size: 16px;
+    }
+
+    .imagem-recuperacao {
+        max-width: 400px;
+        max-height: 380px;
+    }
+}
+
+/* =========================
+   CELULAR
+========================= */
+
+@media (max-width: 700px) {
+
+    html,
+    body {
+        overflow: auto;
+    }
+
+    body {
+        background: #fff;
+    }
+
+    .container {
+        width: 100%;
+        height: auto;
+        min-height: 100vh;
+
+        margin: 0;
+
+        border: none;
+        border-radius: 0;
+
+        box-shadow: none;
+
+        display: flex;
+        flex-direction: column;
+
+        overflow: visible;
+    }
+
+    .left,
+    .right {
+        width: 100%;
+    }
+
+    .left {
+        padding: 40px 30px 20px;
+
+        justify-content: flex-start;
+    }
+
+    .right {
+        padding: 20px 30px 40px;
+    }
+
+    .imagem-recuperacao {
+        width: min(100%, 400px);
+        max-height: none;
+    }
+
+    .card {
+        width: 100%;
+        max-width: 590px;
+
+        padding: 35px 30px;
+    }
+}
+
+/* =========================
+   CELULARES PEQUENOS
+========================= */
+
+@media (max-width: 400px) {
+
+    .left {
+        padding: 25px 20px 10px;
+    }
+
+    .logo {
+        margin-bottom: 30px;
+    }
+
+    .logo span {
+        font-size: 24px;
+    }
+
+    .left h1 {
+        font-size: 31px;
+    }
+
+    .left p {
+        font-size: 16px;
+        line-height: 23px;
+    }
+
+    .right {
+        padding: 15px 20px 30px;
+    }
+
+    .card {
+        padding: 30px 20px;
+    }
+
+    .card h2 {
+        font-size: 24px;
+    }
+
+    .card p {
+        font-size: 16px;
+    }
+
+    button {
+        font-size: 16px;
+    }
+}
