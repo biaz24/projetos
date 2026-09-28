@@ -78,6 +78,9 @@ export async function fetchApi<T>(
   }
 
   const data = await response.json().catch(() => ({}));
+  //remover
+  console.log("STATUS:", response.status);
+  console.log("RESPOSTA:", data);
 
   if (!response.ok) {
     throw new Error(data.erro || "Ocorreu um erro no servidor.");

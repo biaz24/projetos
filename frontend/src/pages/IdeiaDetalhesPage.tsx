@@ -6,6 +6,7 @@ import { fetchApi } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { Ideia, Comentario } from "../types";
+import { useRef } from "react";
 
 const CATEGORIES_OPTIONS = [
   "Tecnologia",
@@ -18,26 +19,48 @@ const CATEGORIES_OPTIONS = [
 
 const STATUS_OPTIONS = ["Disponível", "Em desenvolvimento", "Concluída"];
 
-const CATEGORY_MAP: Record<string, { icon: string; bg: string; color: string }> = {
+const CATEGORY_MAP: Record<
+  string,
+  { icon: string; bg: string; color: string }
+> = {
   Tecnologia: { icon: "fa-solid fa-code", bg: "#dbeafe", color: "#1e40af" },
   Games: { icon: "fa-solid fa-gamepad", bg: "#f3e8ff", color: "#6b21a8" },
-  Sustentabilidade: { icon: "fa-solid fa-seedling", bg: "#dcfce7", color: "#166534" },
+  Sustentabilidade: {
+    icon: "fa-solid fa-seedling",
+    bg: "#dcfce7",
+    color: "#166534",
+  },
   Educação: { icon: "fa-solid fa-book-open", bg: "#fef9c3", color: "#854d0e" },
   Utilitários: { icon: "fa-solid fa-wrench", bg: "#ffedd5", color: "#9a3412" },
   Geral: { icon: "fa-solid fa-lightbulb", bg: "#f1f5f9", color: "#475569" },
 };
 
-const STATUS_MAP: Record<string, { bg: string; color: string; icon: string }> = {
-  Disponível: { bg: "#dcfce7", color: "#166534", icon: "fa-solid fa-circle-check" },
-  "Em desenvolvimento": { bg: "#fef3c7", color: "#92400e", icon: "fa-solid fa-spinner fa-spin" },
-  Concluída: { bg: "#dbeafe", color: "#1e40af", icon: "fa-solid fa-flag-checkered" },
-};
+const STATUS_MAP: Record<string, { bg: string; color: string; icon: string }> =
+  {
+    Disponível: {
+      bg: "#dcfce7",
+      color: "#166534",
+      icon: "fa-solid fa-circle-check",
+    },
+    "Em desenvolvimento": {
+      bg: "#fef3c7",
+      color: "#92400e",
+      icon: "fa-solid fa-spinner fa-spin",
+    },
+    Concluída: {
+      bg: "#dbeafe",
+      color: "#1e40af",
+      icon: "fa-solid fa-flag-checkered",
+    },
+  };
 
 export const IdeiaDetalhesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
+
+  const visualizacaoRegistrada = useRef<string | null>(null);
 
   const [ideia, setIdeia] = useState<Ideia | null>(null);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
@@ -65,7 +88,9 @@ export const IdeiaDetalhesPage: React.FC = () => {
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState("");
   const [submittingEditComment, setSubmittingEditComment] = useState(false);
-  const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<number | null>(
+    null,
+  );
 
   const carregarIdeiaEComentarios = async () => {
     if (!id) return;
@@ -93,8 +118,12 @@ export const IdeiaDetalhesPage: React.FC = () => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
+    if (!id) return;
+    if (visualizacaoRegistrada.current === id) {
+      return;
+    }
+    visualizacaoRegistrada.current = id;
     carregarIdeiaEComentarios();
   }, [id]);
 
@@ -183,7 +212,9 @@ export const IdeiaDetalhesPage: React.FC = () => {
       setReplyParentId(null);
       showToast("Comentário publicado!", "success");
 
-      const data = await fetchApi<Comentario[]>(`/ideias/${ideia.ID}/comentarios`);
+      const data = await fetchApi<Comentario[]>(
+        `/ideias/${ideia.ID}/comentarios`,
+      );
       setComentarios(Array.isArray(data) ? data : []);
     } catch (err: any) {
       showToast(err.message || "Erro ao enviar comentário", "error");
@@ -209,7 +240,9 @@ export const IdeiaDetalhesPage: React.FC = () => {
 
       setComentarios((prev) =>
         prev.map((item) =>
-          item.ID === commentId ? { ...item, COMENTARIOS: editingText.trim() } : item,
+          item.ID === commentId
+            ? { ...item, COMENTARIOS: editingText.trim() }
+            : item,
         ),
       );
       setEditingCommentId(null);
@@ -252,9 +285,11 @@ export const IdeiaDetalhesPage: React.FC = () => {
     ? STATUS_MAP[ideia.STATUS || "Disponível"] || STATUS_MAP.Disponível
     : STATUS_MAP.Disponível;
 
-  const isIdeaOwner = user && ideia && Number(ideia.USUARIOS_ID) === Number(user.id);
+  const isIdeaOwner =
+    user && ideia && Number(ideia.USUARIOS_ID) === Number(user.id);
   const rootComments = comentarios.filter((c) => !c.PARENT_ID);
-  const getReplies = (parentId: number) => comentarios.filter((c) => c.PARENT_ID === parentId);
+  const getReplies = (parentId: number) =>
+    comentarios.filter((c) => c.PARENT_ID === parentId);
 
   return (
     <AppLayout>
@@ -282,7 +317,10 @@ export const IdeiaDetalhesPage: React.FC = () => {
 
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: "2rem", color: "#07327c" }}></i>
+            <i
+              className="fa-solid fa-spinner fa-spin"
+              style={{ fontSize: "2rem", color: "#07327c" }}
+            ></i>
           </div>
         ) : error || !ideia ? (
           <EmptyState
@@ -340,8 +378,23 @@ export const IdeiaDetalhesPage: React.FC = () => {
                     }}
                   >
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "6px" }}>
-                        <h1 style={{ fontSize: "20px", fontWeight: "bold", color: "#1e3a8a", margin: 0 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          flexWrap: "wrap",
+                          marginBottom: "6px",
+                        }}
+                      >
+                        <h1
+                          style={{
+                            fontSize: "20px",
+                            fontWeight: "bold",
+                            color: "#1e3a8a",
+                            margin: 0,
+                          }}
+                        >
                           {ideia.TITULO}
                         </h1>
 
@@ -371,7 +424,10 @@ export const IdeiaDetalhesPage: React.FC = () => {
                             gap: "4px",
                           }}
                         >
-                          <i className={statusConfig.icon} style={{ fontSize: "10px" }}></i>
+                          <i
+                            className={statusConfig.icon}
+                            style={{ fontSize: "10px" }}
+                          ></i>
                           {ideia.STATUS || "Disponível"}
                         </span>
                       </div>
@@ -448,8 +504,23 @@ export const IdeiaDetalhesPage: React.FC = () => {
                   </div>
 
                   {/* Autor e Data */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "10px", fontSize: "11px", color: "#64748b" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      marginTop: "10px",
+                      fontSize: "11px",
+                      color: "#64748b",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
                       <div
                         style={{
                           width: "20px",
@@ -466,7 +537,9 @@ export const IdeiaDetalhesPage: React.FC = () => {
                         <i className="fa-solid fa-user"></i>
                       </div>
                       <span style={{ fontWeight: "bold" }}>
-                        {ideia.ANONIMO ? "Anônimo" : ideia.NOME_AUTOR || "Usuário"}
+                        {ideia.ANONIMO
+                          ? "Anônimo"
+                          : ideia.NOME_AUTOR || "Usuário"}
                       </span>
                     </div>
 
@@ -503,17 +576,49 @@ export const IdeiaDetalhesPage: React.FC = () => {
                   paddingTop: "16px",
                 }}
               >
-                <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#475569" }}>
-                    <i className="fa-regular fa-comment" style={{ fontSize: "14px" }}></i>
-                    <span style={{ fontWeight: "bold" }}>{comentarios.length}</span>
-                    <small style={{ color: "#64748b", fontSize: "10px" }}>Comentários</small>
+                <div
+                  style={{ display: "flex", gap: "20px", alignItems: "center" }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "12px",
+                      color: "#475569",
+                    }}
+                  >
+                    <i
+                      className="fa-regular fa-comment"
+                      style={{ fontSize: "14px" }}
+                    ></i>
+                    <span style={{ fontWeight: "bold" }}>
+                      {comentarios.length}
+                    </span>
+                    <small style={{ color: "#64748b", fontSize: "10px" }}>
+                      Comentários
+                    </small>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#475569" }}>
-                    <i className="fa-regular fa-eye" style={{ fontSize: "14px" }}></i>
-                    <span style={{ fontWeight: "bold" }}>{(ideia as any).visualizacoes_count || 1}</span>
-                    <small style={{ color: "#64748b", fontSize: "10px" }}>Visualizações Reais</small>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "12px",
+                      color: "#475569",
+                    }}
+                  >
+                    <i
+                      className="fa-regular fa-eye"
+                      style={{ fontSize: "14px" }}
+                    ></i>
+                    <span style={{ fontWeight: "bold" }}>
+                      {(ideia as any).visualizacoes_count || 1}
+                    </span>
+                    <small style={{ color: "#64748b", fontSize: "10px" }}>
+                      Visualizações Reais
+                    </small>
                   </div>
                 </div>
               </div>
@@ -529,7 +634,17 @@ export const IdeiaDetalhesPage: React.FC = () => {
                 boxShadow: "0 2px 6px rgba(0, 0, 0, 0.03)",
               }}
             >
-              <h3 style={{ fontSize: "15px", fontWeight: "bold", color: "#1e3a8a", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <h3
+                style={{
+                  fontSize: "15px",
+                  fontWeight: "bold",
+                  color: "#1e3a8a",
+                  marginBottom: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
                 <i className="fa-regular fa-comments"></i>
                 Comentários ({comentarios.length})
               </h3>
@@ -543,9 +658,17 @@ export const IdeiaDetalhesPage: React.FC = () => {
                   />
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    marginBottom: "24px",
+                  }}
+                >
                   {rootComments.map((c) => {
-                    const isCommentOwner = user && Number(c.USUARIOS_ID) === Number(user.id);
+                    const isCommentOwner =
+                      user && Number(c.USUARIOS_ID) === Number(user.id);
                     const canEditComment = isCommentOwner;
                     const canDeleteComment = isCommentOwner || isIdeaOwner;
                     const isEditingThis = editingCommentId === c.ID;
@@ -554,17 +677,54 @@ export const IdeiaDetalhesPage: React.FC = () => {
 
                     return (
                       <div key={c.ID}>
-                        <div style={{ background: "#f8fafc", borderRadius: "10px", padding: "14px 16px", border: "1px solid #f1f5f9" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                            <span style={{ fontSize: "12px", fontWeight: "bold", color: "#1e3a8a" }}>
+                        <div
+                          style={{
+                            background: "#f8fafc",
+                            borderRadius: "10px",
+                            padding: "14px 16px",
+                            border: "1px solid #f1f5f9",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: "12px",
+                                fontWeight: "bold",
+                                color: "#1e3a8a",
+                              }}
+                            >
                               {c.NOME_AUTOR || "Usuário"}
                             </span>
 
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                              }}
+                            >
                               <button
                                 type="button"
-                                onClick={() => setReplyParentId(replyParentId === c.ID ? null : c.ID)}
-                                style={{ background: "none", border: "none", color: "#07327c", cursor: "pointer", fontSize: "11px", fontWeight: "bold" }}
+                                onClick={() =>
+                                  setReplyParentId(
+                                    replyParentId === c.ID ? null : c.ID,
+                                  )
+                                }
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  color: "#07327c",
+                                  cursor: "pointer",
+                                  fontSize: "11px",
+                                  fontWeight: "bold",
+                                }}
                               >
                                 Responder
                               </button>
@@ -573,7 +733,13 @@ export const IdeiaDetalhesPage: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleStartEditComment(c)}
-                                  style={{ background: "none", border: "none", color: "#2563eb", cursor: "pointer", fontSize: "12px" }}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    color: "#2563eb",
+                                    cursor: "pointer",
+                                    fontSize: "12px",
+                                  }}
                                 >
                                   <i className="fa-solid fa-pencil"></i>
                                 </button>
@@ -584,9 +750,22 @@ export const IdeiaDetalhesPage: React.FC = () => {
                                   type="button"
                                   onClick={() => handleDeleteComment(c.ID)}
                                   disabled={isDeletingThis}
-                                  style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "12px", opacity: isDeletingThis ? 0.5 : 1 }}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    color: "#ef4444",
+                                    cursor: "pointer",
+                                    fontSize: "12px",
+                                    opacity: isDeletingThis ? 0.5 : 1,
+                                  }}
                                 >
-                                  <i className={isDeletingThis ? "fa-solid fa-spinner fa-spin" : "fa-solid fa-trash"}></i>
+                                  <i
+                                    className={
+                                      isDeletingThis
+                                        ? "fa-solid fa-spinner fa-spin"
+                                        : "fa-solid fa-trash"
+                                    }
+                                  ></i>
                                 </button>
                               )}
                             </div>
@@ -597,19 +776,53 @@ export const IdeiaDetalhesPage: React.FC = () => {
                               <textarea
                                 value={editingText}
                                 onChange={(e) => setEditingText(e.target.value)}
-                                style={{ width: "100%", padding: "8px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                                style={{
+                                  width: "100%",
+                                  padding: "8px",
+                                  fontSize: "12px",
+                                  borderRadius: "6px",
+                                  border: "1px solid #cbd5e1",
+                                }}
                               />
-                              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "6px" }}>
-                                <button type="button" onClick={() => setEditingCommentId(null)} style={{ fontSize: "11px" }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: "8px",
+                                  justifyContent: "flex-end",
+                                  marginTop: "6px",
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingCommentId(null)}
+                                  style={{ fontSize: "11px" }}
+                                >
                                   Cancelar
                                 </button>
-                                <button type="button" onClick={() => handleSaveEditComment(c.ID)} style={{ background: "#07327c", color: "white", borderRadius: "4px", padding: "4px 10px", fontSize: "11px" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveEditComment(c.ID)}
+                                  style={{
+                                    background: "#07327c",
+                                    color: "white",
+                                    borderRadius: "4px",
+                                    padding: "4px 10px",
+                                    fontSize: "11px",
+                                  }}
+                                >
                                   Salvar
                                 </button>
                               </div>
                             </div>
                           ) : (
-                            <p style={{ fontSize: "12px", color: "#334155", margin: 0, lineHeight: "1.5" }}>
+                            <p
+                              style={{
+                                fontSize: "12px",
+                                color: "#334155",
+                                margin: 0,
+                                lineHeight: "1.5",
+                              }}
+                            >
                               {c.COMENTARIOS}
                             </p>
                           )}
@@ -617,24 +830,86 @@ export const IdeiaDetalhesPage: React.FC = () => {
 
                         {/* Respostas Aninhadas */}
                         {replies.length > 0 && (
-                          <div style={{ marginLeft: "24px", marginTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                          <div
+                            style={{
+                              marginLeft: "24px",
+                              marginTop: "8px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "8px",
+                            }}
+                          >
                             {replies.map((reply) => {
-                              const canDeleteReply = (user && Number(reply.USUARIOS_ID) === Number(user.id)) || isIdeaOwner;
-                              const isDeletingReply = deletingCommentId === reply.ID;
+                              const canDeleteReply =
+                                (user &&
+                                  Number(reply.USUARIOS_ID) ===
+                                    Number(user.id)) ||
+                                isIdeaOwner;
+                              const isDeletingReply =
+                                deletingCommentId === reply.ID;
 
                               return (
-                                <div key={reply.ID} style={{ background: "#ffffff", borderRadius: "8px", padding: "10px 14px", borderLeft: "4px solid #07327c", borderTop: "1px solid #f1f5f9", borderRight: "1px solid #f1f5f9", borderBottom: "1px solid #f1f5f9" }}>
-                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                                    <span style={{ fontSize: "11px", fontWeight: "bold", color: "#07327c" }}>
+                                <div
+                                  key={reply.ID}
+                                  style={{
+                                    background: "#ffffff",
+                                    borderRadius: "8px",
+                                    padding: "10px 14px",
+                                    borderLeft: "4px solid #07327c",
+                                    borderTop: "1px solid #f1f5f9",
+                                    borderRight: "1px solid #f1f5f9",
+                                    borderBottom: "1px solid #f1f5f9",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      marginBottom: "4px",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        fontSize: "11px",
+                                        fontWeight: "bold",
+                                        color: "#07327c",
+                                      }}
+                                    >
                                       {reply.NOME_AUTOR || "Usuário"} (resposta)
                                     </span>
                                     {canDeleteReply && (
-                                      <button type="button" onClick={() => handleDeleteComment(reply.ID)} disabled={isDeletingReply} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "11px", opacity: isDeletingReply ? 0.5 : 1 }}>
-                                        <i className={isDeletingReply ? "fa-solid fa-spinner fa-spin" : "fa-solid fa-trash"}></i>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleDeleteComment(reply.ID)
+                                        }
+                                        disabled={isDeletingReply}
+                                        style={{
+                                          background: "none",
+                                          border: "none",
+                                          color: "#ef4444",
+                                          cursor: "pointer",
+                                          fontSize: "11px",
+                                          opacity: isDeletingReply ? 0.5 : 1,
+                                        }}
+                                      >
+                                        <i
+                                          className={
+                                            isDeletingReply
+                                              ? "fa-solid fa-spinner fa-spin"
+                                              : "fa-solid fa-trash"
+                                          }
+                                        ></i>
                                       </button>
                                     )}
                                   </div>
-                                  <p style={{ fontSize: "11px", color: "#475569", margin: 0 }}>
+                                  <p
+                                    style={{
+                                      fontSize: "11px",
+                                      color: "#475569",
+                                      margin: 0,
+                                    }}
+                                  >
                                     {reply.COMENTARIOS}
                                   </p>
                                 </div>
@@ -649,11 +924,31 @@ export const IdeiaDetalhesPage: React.FC = () => {
               )}
 
               {/* Formulário de Enviar Comentário / Resposta */}
-              <form onSubmit={handleAddComment} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <form
+                onSubmit={handleAddComment}
+                style={{ display: "flex", flexDirection: "column", gap: "6px" }}
+              >
                 {replyParentId && (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#07327c", fontWeight: "bold" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: "11px",
+                      color: "#07327c",
+                      fontWeight: "bold",
+                    }}
+                  >
                     <span>Respondendo ao comentário #{replyParentId}</span>
-                    <button type="button" onClick={() => setReplyParentId(null)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer" }}>
+                    <button
+                      type="button"
+                      onClick={() => setReplyParentId(null)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#ef4444",
+                        cursor: "pointer",
+                      }}
+                    >
                       Cancelar resposta
                     </button>
                   </div>
@@ -661,18 +956,46 @@ export const IdeiaDetalhesPage: React.FC = () => {
 
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <textarea
-                    placeholder={replyParentId ? "Escreva sua resposta..." : "Escreva seu comentário..."}
+                    placeholder={
+                      replyParentId
+                        ? "Escreva sua resposta..."
+                        : "Escreva seu comentário..."
+                    }
                     value={novoComentario}
                     onChange={(e) => setNovoComentario(e.target.value)}
                     required
-                    style={{ flex: 1, minWidth: "240px", height: "70px", padding: "10px", fontSize: "12px", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", fontFamily: "inherit" }}
+                    style={{
+                      flex: 1,
+                      minWidth: "240px",
+                      height: "70px",
+                      padding: "10px",
+                      fontSize: "12px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      outline: "none",
+                      fontFamily: "inherit",
+                    }}
                   />
                   <button
                     type="submit"
                     disabled={submittingComment}
-                    style={{ background: "#07327c", color: "white", border: "none", borderRadius: "8px", padding: "0 20px", height: "70px", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}
+                    style={{
+                      background: "#07327c",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "0 20px",
+                      height: "70px",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                    }}
                   >
-                    {submittingComment ? "Enviando..." : replyParentId ? "Responder" : "Comentar"}
+                    {submittingComment
+                      ? "Enviando..."
+                      : replyParentId
+                        ? "Responder"
+                        : "Comentar"}
                   </button>
                 </div>
               </form>
@@ -683,39 +1006,183 @@ export const IdeiaDetalhesPage: React.FC = () => {
 
       {/* Modal de Editar Ideia */}
       {isEditIdeaModalOpen && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0, 0, 0, 0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: "20px" }}>
-          <div style={{ background: "white", borderRadius: "14px", padding: "24px", maxWidth: "540px", width: "100%" }}>
-            <h3 style={{ fontSize: "16px", color: "#1e3a8a", marginBottom: "16px" }}>Editar Ideia</h3>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 200,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "14px",
+              padding: "24px",
+              maxWidth: "540px",
+              width: "100%",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: "16px",
+                color: "#1e3a8a",
+                marginBottom: "16px",
+              }}
+            >
+              Editar Ideia
+            </h3>
             <form onSubmit={handleSaveEditIdea}>
-              <label style={{ fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "4px" }}>Título</label>
-              <input type="text" value={editTitulo} onChange={(e) => setEditTitulo(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1", marginBottom: "14px" }} />
+              <label
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  display: "block",
+                  marginBottom: "4px",
+                }}
+              >
+                Título
+              </label>
+              <input
+                type="text"
+                value={editTitulo}
+                onChange={(e) => setEditTitulo(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  marginBottom: "14px",
+                }}
+              />
 
-              <div style={{ display: "flex", gap: "12px", marginBottom: "14px" }}>
+              <div
+                style={{ display: "flex", gap: "12px", marginBottom: "14px" }}
+              >
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "4px" }}>Categoria</label>
-                  <select value={editCategoria} onChange={(e) => setEditCategoria(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1" }}>
+                  <label
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      display: "block",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Categoria
+                  </label>
+                  <select
+                    value={editCategoria}
+                    onChange={(e) => setEditCategoria(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "6px",
+                      border: "1px solid #cbd5e1",
+                    }}
+                  >
                     {CATEGORIES_OPTIONS.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "4px" }}>Status</label>
-                  <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1" }}>
+                  <label
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      display: "block",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Status
+                  </label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "6px",
+                      border: "1px solid #cbd5e1",
+                    }}
+                  >
                     {STATUS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              <label style={{ fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "4px" }}>Descrição *</label>
-              <textarea value={editDescricao} onChange={(e) => setEditDescricao(e.target.value)} required rows={5} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1", marginBottom: "16px", fontFamily: "inherit" }} />
+              <label
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  display: "block",
+                  marginBottom: "4px",
+                }}
+              >
+                Descrição *
+              </label>
+              <textarea
+                value={editDescricao}
+                onChange={(e) => setEditDescricao(e.target.value)}
+                required
+                rows={5}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  marginBottom: "16px",
+                  fontFamily: "inherit",
+                }}
+              />
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-                <button type="button" onClick={() => setIsEditIdeaModalOpen(false)} style={{ padding: "8px 16px", borderRadius: "6px", border: "none", background: "#f1f5f9" }}>Cancelar</button>
-                <button type="submit" disabled={savingIdea} style={{ padding: "8px 16px", borderRadius: "6px", border: "none", background: "#07327c", color: "white", fontWeight: "bold" }}>{savingIdea ? "Salvando..." : "Salvar Alterações"}</button>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "10px",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsEditIdeaModalOpen(false)}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: "#f1f5f9",
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingIdea}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: "#07327c",
+                    color: "white",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {savingIdea ? "Salvando..." : "Salvar Alterações"}
+                </button>
               </div>
             </form>
           </div>
@@ -724,15 +1191,86 @@ export const IdeiaDetalhesPage: React.FC = () => {
 
       {/* Modal de Confirmação de Exclusão de Ideia */}
       {isDeleteModalOpen && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0, 0, 0, 0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: "20px" }}>
-          <div style={{ background: "white", borderRadius: "14px", padding: "24px", maxWidth: "420px", width: "100%" }}>
-            <h3 style={{ fontSize: "16px", color: "#ef4444", margin: "0 0 12px 0" }}>Excluir Ideia</h3>
-            <p style={{ fontSize: "13px", color: "#475569", marginBottom: "20px", lineHeight: "1.5" }}>
-              Tem certeza que deseja excluir esta ideia? Esta ação não poderá ser desfeita e removerá todos os comentários e salvos associados.
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 200,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "14px",
+              padding: "24px",
+              maxWidth: "420px",
+              width: "100%",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: "16px",
+                color: "#ef4444",
+                margin: "0 0 12px 0",
+              }}
+            >
+              Excluir Ideia
+            </h3>
+            <p
+              style={{
+                fontSize: "13px",
+                color: "#475569",
+                marginBottom: "20px",
+                lineHeight: "1.5",
+              }}
+            >
+              Tem certeza que deseja excluir esta ideia? Esta ação não poderá
+              ser desfeita e removerá todos os comentários e salvos associados.
             </p>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-              <button type="button" onClick={() => setIsDeleteModalOpen(false)} style={{ padding: "8px 16px", borderRadius: "6px", border: "none", background: "#f1f5f9", cursor: "pointer" }}>Cancelar</button>
-              <button type="button" onClick={handleDeleteIdea} disabled={deletingIdea} style={{ padding: "8px 16px", borderRadius: "6px", border: "none", background: "#ef4444", color: "white", fontWeight: "bold", cursor: "pointer" }}>{deletingIdea ? "Excluindo..." : "Sim, Excluir Ideia"}</button>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#f1f5f9",
+                  cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteIdea}
+                disabled={deletingIdea}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#ef4444",
+                  color: "white",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
+                {deletingIdea ? "Excluindo..." : "Sim, Excluir Ideia"}
+              </button>
             </div>
           </div>
         </div>
@@ -740,39 +1278,133 @@ export const IdeiaDetalhesPage: React.FC = () => {
 
       {/* Modal de Contato / Adotar Ideia */}
       {isContactModalOpen && ideia && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0, 0, 0, 0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: "20px" }}>
-          <div style={{ background: "white", borderRadius: "14px", padding: "24px", maxWidth: "450px", width: "100%" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h3 style={{ fontSize: "16px", color: "#1e3a8a", margin: 0 }}>Adotar Ideia / Contatar Autor</h3>
-              <button onClick={() => setIsContactModalOpen(false)} style={{ background: "none", border: "none", fontSize: "16px", cursor: "pointer" }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 200,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "14px",
+              padding: "24px",
+              maxWidth: "450px",
+              width: "100%",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+              }}
+            >
+              <h3 style={{ fontSize: "16px", color: "#1e3a8a", margin: 0 }}>
+                Adotar Ideia / Contatar Autor
+              </h3>
+              <button
+                onClick={() => setIsContactModalOpen(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "16px",
+                  cursor: "pointer",
+                }}
+              >
                 <i className="fa-solid fa-xmark"></i>
               </button>
             </div>
 
             {ideia.ANONIMO ? (
-              <p style={{ fontSize: "13px", color: "#64748b", lineHeight: "1.5" }}>
-                Esta ideia foi publicada de forma <strong>Anônima</strong>. Deixe um comentário na publicação para demonstrar seu interesse em colaborar!
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "#64748b",
+                  lineHeight: "1.5",
+                }}
+              >
+                Esta ideia foi publicada de forma <strong>Anônima</strong>.
+                Deixe um comentário na publicação para demonstrar seu interesse
+                em colaborar!
               </p>
             ) : (
               <div>
-                <p style={{ fontSize: "13px", color: "#334155", marginBottom: "14px", lineHeight: "1.5" }}>
-                  Você está demonstrando interesse em desenvolver ou colaborar no projeto <strong>{ideia.TITULO}</strong>.
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "#334155",
+                    marginBottom: "14px",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  Você está demonstrando interesse em desenvolver ou colaborar
+                  no projeto <strong>{ideia.TITULO}</strong>.
                 </p>
-                <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", marginBottom: "16px", border: "1px solid #e2e8f0" }}>
-                  <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>Autor da Ideia:</span>
-                  <strong style={{ fontSize: "13px", color: "#1e3a8a" }}>{ideia.NOME_AUTOR}</strong>
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    marginBottom: "16px",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "#64748b",
+                      display: "block",
+                    }}
+                  >
+                    Autor da Ideia:
+                  </span>
+                  <strong style={{ fontSize: "13px", color: "#1e3a8a" }}>
+                    {ideia.NOME_AUTOR}
+                  </strong>
                   {ideia.EMAIL_AUTOR && (
-                    <span style={{ fontSize: "12px", color: "#475569", display: "block", marginTop: "2px" }}>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "#475569",
+                        display: "block",
+                        marginTop: "2px",
+                      }}
+                    >
                       E-mail: {ideia.EMAIL_AUTOR}
                     </span>
                   )}
                 </div>
 
-                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    justifyContent: "flex-end",
+                  }}
+                >
                   {ideia.EMAIL_AUTOR && (
                     <a
                       href={`mailto:${ideia.EMAIL_AUTOR}?subject=Interesse na Ideia: ${encodeURIComponent(ideia.TITULO)}`}
-                      style={{ background: "#07327c", color: "white", padding: "8px 16px", borderRadius: "6px", textDecoration: "none", fontSize: "12px", fontWeight: "bold" }}
+                      style={{
+                        background: "#07327c",
+                        color: "white",
+                        padding: "8px 16px",
+                        borderRadius: "6px",
+                        textDecoration: "none",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                      }}
                     >
                       Enviar E-mail ao Autor
                     </a>

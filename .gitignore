@@ -6,9 +6,11 @@
 node_modules/
 **/node_modules/
 
-# Arquivos de build
+# Builds
 dist/
 build/
 
 # Logs
 *.log
+
+Projeto/

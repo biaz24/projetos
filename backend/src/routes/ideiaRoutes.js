@@ -6,7 +6,7 @@ const router = Router();
 
 router.post("/ideias", autenticarToken, ideiaController.criarIdeia);
 router.get("/ideias", ideiaController.listarIdeias);
-router.get("/ideias/:id", ideiaController.buscarIdeiaPorId);
+router.get("/ideias/:id", autenticarToken, ideiaController.buscarIdeiaPorId);
 router.put("/ideias/:id", autenticarToken, ideiaController.atualizarIdeia);
 router.delete("/ideias/:id", autenticarToken, ideiaController.deletarideia);
 

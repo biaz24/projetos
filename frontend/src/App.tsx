@@ -70,7 +70,7 @@ export const App: React.FC = () => {
               }
             />
             <Route
-              path="/rascunhos"
+              path="/meus-rascunhos"
               element={
                 <ProtectedRoute>
                   <RascunhosPage />

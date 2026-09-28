@@ -3,7 +3,13 @@ import ideiaService from "../services/ideiaService.js";
 async function criarIdeia(req, res) {
   try {
     const usuarioId = req.user.id;
-    const { titulo, descricao, categoria = "Geral", status = "Disponível", anonimo } = req.body;
+    const {
+      titulo,
+      descricao,
+      categoria = "Geral",
+      status = "Disponível",
+      anonimo,
+    } = req.body;
 
     if (!descricao || !descricao.trim()) {
       return res.status(400).json({
@@ -35,7 +41,13 @@ async function criarIdeia(req, res) {
 
 async function listarIdeias(req, res) {
   try {
-    const { page = 1, limit = 10, search = "", categoria = "", status = "" } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      categoria = "",
+      status = "",
+    } = req.query;
 
     const resultado = await ideiaService.listarIdeias({
       page: Number(page),
@@ -54,10 +66,35 @@ async function listarIdeias(req, res) {
   }
 }
 
+// async function buscarIdeiaPorId(req, res) {
+//   try {
+//     const { id } = req.params;
+//     const usuarioId = req.user?.id || null;
+
+//     const ideia = await ideiaService.buscarIdeiaPorId(id, usuarioId);
+
+//     if (!ideia) {
+//       return res.status(404).json({
+//         erro: "Ideia não encontrada",
+//       });
+//     }
+//     return res.status(200).json(ideia);
+//   } catch (erro) {
+//     console.error("Erro ao buscar ideia por id:", erro);
+//     return res.status(500).json({
+//       erro: "Erro ao buscar ideia",
+//     });
+//   }
+// }
+
 async function buscarIdeiaPorId(req, res) {
   try {
     const { id } = req.params;
     const usuarioId = req.user?.id || null;
+
+    console.log("ID DA IDEIA:", id);
+    console.log("USUÁRIO LOGADO:", req.user);
+    console.log("USUÁRIO ID:", usuarioId);
 
     const ideia = await ideiaService.buscarIdeiaPorId(id, usuarioId);
 
@@ -66,6 +103,7 @@ async function buscarIdeiaPorId(req, res) {
         erro: "Ideia não encontrada",
       });
     }
+
     return res.status(200).json(ideia);
   } catch (erro) {
     console.error("Erro ao buscar ideia por id:", erro);
@@ -78,7 +116,13 @@ async function buscarIdeiaPorId(req, res) {
 async function atualizarIdeia(req, res) {
   try {
     const { id } = req.params;
-    const { titulo, descricao, categoria = "Geral", status = "Disponível", anonimo } = req.body;
+    const {
+      titulo,
+      descricao,
+      categoria = "Geral",
+      status = "Disponível",
+      anonimo,
+    } = req.body;
 
     const ideiaExistente = await ideiaService.buscarIdeiaPorId(id);
     if (!ideiaExistente) {

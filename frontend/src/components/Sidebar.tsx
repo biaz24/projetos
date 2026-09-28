@@ -42,7 +42,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           transition: "transform 0.3s ease",
         }}
       >
-        <div className="logo" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          className="logo"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
             <i className="fa-regular fa-lightbulb"></i>
             <span>IdeiaFutura</span>
@@ -98,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </NavLink>
 
           <NavLink
-            to="/rascunhos"
+            to="/meus-rascunhos"
             className={({ isActive }) =>
               `menu-item ${isActive ? "active" : ""}`
             }

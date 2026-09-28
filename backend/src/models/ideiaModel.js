@@ -1,6 +1,13 @@
 import connection from "../database/connection.js";
 
-async function criarIdeia(usuarioId, titulo, descricao, categoria = "Geral", status = "Disponível", anonimo = false) {
+async function criarIdeia(
+  usuarioId,
+  titulo,
+  descricao,
+  categoria = "Geral",
+  status = "Disponível",
+  anonimo = false,
+) {
   const [resultado] = await connection.query(
     `INSERT INTO IDEIAS
         (USUARIOS_ID, TITULO, DESCRICAO, CATEGORIA, STATUS, ANONIMO) 
@@ -10,7 +17,13 @@ async function criarIdeia(usuarioId, titulo, descricao, categoria = "Geral", sta
   return resultado;
 }
 
-async function listarIdeias({ page = 1, limit = 10, search = "", categoria = "", status = "" } = {}) {
+async function listarIdeias({
+  page = 1,
+  limit = 10,
+  search = "",
+  categoria = "",
+  status = "",
+} = {}) {
   const offset = (Number(page) - 1) * Number(limit);
   const params = [];
   const whereClauses = [];
@@ -30,7 +43,8 @@ async function listarIdeias({ page = 1, limit = 10, search = "", categoria = "",
     params.push(status.trim());
   }
 
-  const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+  const whereSQL =
+    whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
   // Query para contar total de itens filtrados
   const [[{ total }]] = await connection.query(
@@ -52,7 +66,7 @@ async function listarIdeias({ page = 1, limit = 10, search = "", categoria = "",
       u.NOME as NOME_AUTOR,
       u.EMAIL as EMAIL_AUTOR,
       CAST((SELECT COUNT(*) FROM COMENTARIOS com WHERE com.IDEIAS_ID = i.ID) AS SIGNED) as comentarios_count,
-      CAST((SELECT COUNT(*) FROM VISUALIZACOES v WHERE v.IDEIAS_ID = i.ID) AS SIGNED) + 1 as visualizacoes_count
+      CAST((SELECT COUNT(*) FROM VISUALIZACOES v WHERE v.IDEIAS_ID = i.ID) AS SIGNED) as visualizacoes_count
     FROM IDEIAS i
     JOIN USUARIOS u ON i.USUARIOS_ID = u.ID
     ${whereSQL}
@@ -86,7 +100,7 @@ async function buscarIdeiaPorId(id) {
       u.NOME as NOME_AUTOR,
       u.EMAIL as EMAIL_AUTOR,
       CAST((SELECT COUNT(*) FROM COMENTARIOS com WHERE com.IDEIAS_ID = i.ID) AS SIGNED) as comentarios_count,
-      CAST((SELECT COUNT(*) FROM VISUALIZACOES v WHERE v.IDEIAS_ID = i.ID) AS SIGNED) + 1 as visualizacoes_count
+      CAST((SELECT COUNT(*) FROM VISUALIZACOES v WHERE v.IDEIAS_ID = i.ID) AS SIGNED) visualizacoes_count
     FROM IDEIAS i
     JOIN USUARIOS u ON i.USUARIOS_ID = u.ID
     WHERE i.ID = ?`,
@@ -95,10 +109,23 @@ async function buscarIdeiaPorId(id) {
   return ideias[0];
 }
 
-async function registrarVisualizacao(ideiaId, usuarioId = null) {
+async function registrarVisualizacao(ideiaId, usuarioId) {
   try {
+    const [existente] = await connection.query(
+      `SELECT ID
+       FROM VISUALIZACOES
+       WHERE IDEIAS_ID = ? AND USUARIOS_ID = ?
+       LIMIT 1`,
+      [ideiaId, usuarioId],
+    );
+
+    if (existente.length > 0) {
+      return;
+    }
+
     await connection.query(
-      `INSERT INTO VISUALIZACOES (IDEIAS_ID, USUARIOS_ID) VALUES (?, ?)`,
+      `INSERT INTO VISUALIZACOES (IDEIAS_ID, USUARIOS_ID)
+       VALUES (?, ?)`,
       [ideiaId, usuarioId],
     );
   } catch (err) {
@@ -106,7 +133,14 @@ async function registrarVisualizacao(ideiaId, usuarioId = null) {
   }
 }
 
-async function atualizarIdeia(id, titulo, descricao, categoria, status, anonimo) {
+async function atualizarIdeia(
+  id,
+  titulo,
+  descricao,
+  categoria,
+  status,
+  anonimo,
+) {
   const [resultado] = await connection.query(
     `UPDATE IDEIAS
     SET TITULO = ?, DESCRICAO = ?, CATEGORIA = ?, STATUS = ?, ANONIMO = ?
@@ -141,7 +175,7 @@ async function listarIdeiasPorUsuario(usuarioId) {
       u.NOME as NOME_AUTOR,
       u.EMAIL as EMAIL_AUTOR,
       CAST((SELECT COUNT(*) FROM COMENTARIOS com WHERE com.IDEIAS_ID = i.ID) AS SIGNED) as comentarios_count,
-      CAST((SELECT COUNT(*) FROM VISUALIZACOES v WHERE v.IDEIAS_ID = i.ID) AS SIGNED) + 1 as visualizacoes_count
+      CAST((SELECT COUNT(*) FROM VISUALIZACOES v WHERE v.IDEIAS_ID = i.ID) AS SIGNED) visualizacoes_count
     FROM IDEIAS i
     JOIN USUARIOS u ON i.USUARIOS_ID = u.ID
     WHERE i.USUARIOS_ID = ?

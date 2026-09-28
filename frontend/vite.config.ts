@@ -30,6 +30,11 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+      // mudar depois
+      "/rascunhos": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
     },
   },
 });

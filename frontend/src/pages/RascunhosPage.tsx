@@ -29,6 +29,15 @@ export const RascunhosPage: React.FC = () => {
   const [descricao, setDescricao] = useState("");
   const [saving, setSaving] = useState(false);
 
+  //adicionei
+  const [publicarModalOpen, setPublicarModalOpen] = useState(false);
+  const [rascunhoParaPublicar, setRascunhoParaPublicar] =
+    useState<Rascunho | null>(null);
+  const [categoria, setCategoria] = useState("Geral");
+  const [anonimo, setAnonimo] = useState(0);
+  const [publicando, setPublicando] = useState(false);
+  const [status, setStatus] = useState("Disponível");
+
   const carregarRascunhos = async () => {
     try {
       setLoading(true);
@@ -59,9 +68,61 @@ export const RascunhosPage: React.FC = () => {
     setModalOpen(true);
   };
 
+  const handleOpenPublicarModal = (rascunho: Rascunho) => {
+    setRascunhoParaPublicar(rascunho);
+    setCategoria("Geral");
+    setStatus("Disponível");
+    setAnonimo(0);
+    setPublicarModalOpen(true);
+  };
+
+  //adicionei
+  const handleTransformarEmIdeia = async () => {
+    if (!rascunhoParaPublicar || publicando) return;
+
+    setPublicando(true);
+
+    try {
+      // Primeiro cria a ideia no banco
+      await fetchApi("/ideias", {
+        method: "POST",
+        body: JSON.stringify({
+          titulo: rascunhoParaPublicar.TITULO.trim(),
+          descricao: rascunhoParaPublicar.DESCRICAO.trim(),
+          categoria,
+          status,
+          anonimo,
+        }),
+      });
+
+      // Se a ideia foi criada, exclui o rascunho
+      await fetchApi(`/rascunhos/${rascunhoParaPublicar.ID}`, {
+        method: "DELETE",
+      });
+
+      // Remove da tela
+      setRascunhos((prev) =>
+        prev.filter((r) => r.ID !== rascunhoParaPublicar.ID),
+      );
+
+      setPublicarModalOpen(false);
+      setRascunhoParaPublicar(null);
+
+      alert("Ideia publicada com sucesso!");
+    } catch (err: any) {
+      console.error("Erro ao transformar rascunho em ideia:", err);
+      alert(err.message || "Erro ao publicar ideia.");
+    } finally {
+      setPublicando(false);
+    }
+  };
+
   const handleSaveRascunho = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    // e.preventDefault();
+
+    // console.log("CLIQUEI EM SALVAR");
 
     try {
       if (editId) {
@@ -85,7 +146,8 @@ export const RascunhosPage: React.FC = () => {
   };
 
   const handleDeleteRascunho = async (id: number) => {
-    if (!window.confirm("Tem certeza que deseja excluir este rascunho?")) return;
+    if (!window.confirm("Tem certeza que deseja excluir este rascunho?"))
+      return;
 
     try {
       await fetchApi(`/rascunhos/${id}`, { method: "DELETE" });
@@ -105,7 +167,14 @@ export const RascunhosPage: React.FC = () => {
   return (
     <AppLayout>
       <section className="content">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: "20px",
+          }}
+        >
           <div>
             <h1>Rascunhos</h1>
             <p className="description">
@@ -130,24 +199,29 @@ export const RascunhosPage: React.FC = () => {
             }}
           >
             <i className="fa-solid fa-plus"></i>
-            Nova ideia
+            Novo rascunho
           </button>
         </div>
 
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px 0" }}>
-            <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: "1.5rem", color: "#07327c" }}></i>
+            <i
+              className="fa-solid fa-spinner fa-spin"
+              style={{ fontSize: "1.5rem", color: "#07327c" }}
+            ></i>
           </div>
         ) : rascunhos.length === 0 ? (
           <EmptyState
             icon="fa-regular fa-file-lines"
             title="Nenhum rascunho salvo"
             description="Comece a rascunhar um projeto novo para desenvolver no seu ritmo!"
-            actionText="+ Nova ideia"
+            actionText="+ Novo rascunho de ideia"
             onAction={handleOpenCreateModal}
           />
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+          >
             {rascunhos.map((item, idx) => {
               const category = CATEGORIES[idx % CATEGORIES.length];
               return (
@@ -165,7 +239,15 @@ export const RascunhosPage: React.FC = () => {
                     flexWrap: "wrap",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: 1, minWidth: "220px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "16px",
+                      flex: 1,
+                      minWidth: "220px",
+                    }}
+                  >
                     <div
                       style={{
                         width: "44px",
@@ -184,10 +266,23 @@ export const RascunhosPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <h3 style={{ fontSize: "14px", color: "#1e3a8a", margin: "0 0 4px 0" }}>
+                      <h3
+                        style={{
+                          fontSize: "14px",
+                          color: "#1e3a8a",
+                          margin: "0 0 4px 0",
+                        }}
+                      >
                         {item.TITULO}
                       </h3>
-                      <p style={{ fontSize: "11px", color: "#64748b", margin: "0 0 6px 0", lineHeight: "1.4" }}>
+                      <p
+                        style={{
+                          fontSize: "11px",
+                          color: "#64748b",
+                          margin: "0 0 6px 0",
+                          lineHeight: "1.4",
+                        }}
+                      >
                         {item.DESCRICAO}
                       </p>
                       <span style={{ fontSize: "10px", color: "#94a3b8" }}>
@@ -196,7 +291,13 @@ export const RascunhosPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "14px",
+                    }}
+                  >
                     {/* Badge Em Edição */}
                     <span
                       style={{
@@ -211,11 +312,36 @@ export const RascunhosPage: React.FC = () => {
                         gap: "4px",
                       }}
                     >
-                      <i className="fa-regular fa-clock" style={{ fontSize: "9px" }}></i>
+                      <i
+                        className="fa-regular fa-clock"
+                        style={{ fontSize: "9px" }}
+                      ></i>
                       Em edição
                     </span>
 
                     {/* Botões de Ação */}
+
+                    <button
+                      onClick={() => handleOpenPublicarModal(item)}
+                      style={{
+                        background: "#07327c",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: "7px 12px",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                      }}
+                      title="Transformar rascunho em ideia"
+                    >
+                      <i className="fa-solid fa-lightbulb"></i>
+                      Publicar ideia
+                    </button>
+
                     <button
                       onClick={() => handleOpenEditModal(item)}
                       style={{
@@ -280,20 +406,41 @@ export const RascunhosPage: React.FC = () => {
               boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+              }}
+            >
               <h3 style={{ fontSize: "16px", color: "#1e3a8a", margin: 0 }}>
                 {editId ? "Editar Rascunho" : "Novo Rascunho"}
               </h3>
               <button
                 onClick={() => setModalOpen(false)}
-                style={{ background: "none", border: "none", fontSize: "16px", cursor: "pointer", color: "#64748b" }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "16px",
+                  cursor: "pointer",
+                  color: "#64748b",
+                }}
               >
                 <i className="fa-solid fa-xmark"></i>
               </button>
             </div>
 
             <form onSubmit={handleSaveRascunho}>
-              <label style={{ fontSize: "12px", color: "#1e3a8a", fontWeight: "bold", display: "block", marginBottom: "6px" }}>
+              <label
+                style={{
+                  fontSize: "12px",
+                  color: "#1e3a8a",
+                  fontWeight: "bold",
+                  display: "block",
+                  marginBottom: "6px",
+                }}
+              >
                 Título do rascunho
               </label>
               <input
@@ -313,7 +460,15 @@ export const RascunhosPage: React.FC = () => {
                 }}
               />
 
-              <label style={{ fontSize: "12px", color: "#1e3a8a", fontWeight: "bold", display: "block", marginBottom: "6px" }}>
+              <label
+                style={{
+                  fontSize: "12px",
+                  color: "#1e3a8a",
+                  fontWeight: "bold",
+                  display: "block",
+                  marginBottom: "6px",
+                }}
+              >
                 Descrição do rascunho
               </label>
               <textarea
@@ -334,7 +489,13 @@ export const RascunhosPage: React.FC = () => {
                 }}
               />
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "10px",
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
@@ -367,6 +528,203 @@ export const RascunhosPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Modal Transformar Rascunho em Ideia */}
+      {publicarModalOpen && rascunhoParaPublicar && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 300,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "12px",
+              padding: "24px",
+              maxWidth: "450px",
+              width: "100%",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: "16px",
+                color: "#1e3a8a",
+                margin: "0 0 8px 0",
+              }}
+            >
+              Publicar como nova ideia
+            </h3>
+
+            <p
+              style={{
+                fontSize: "12px",
+                color: "#64748b",
+                marginBottom: "18px",
+              }}
+            >
+              Seu rascunho será publicado como uma nova ideia.
+            </p>
+
+            <label
+              style={{
+                fontSize: "12px",
+                color: "#1e3a8a",
+                fontWeight: "bold",
+                display: "block",
+                marginBottom: "6px",
+              }}
+            >
+              Título
+            </label>
+
+            <input
+              type="text"
+              value={rascunhoParaPublicar.TITULO}
+              disabled
+              style={{
+                width: "100%",
+                padding: "10px",
+                border: "1px solid #cbd5e1",
+                borderRadius: "6px",
+                fontSize: "13px",
+                marginBottom: "16px",
+                background: "#f8fafc",
+              }}
+            />
+
+            <label
+              style={{
+                fontSize: "12px",
+                color: "#1e3a8a",
+                fontWeight: "bold",
+                display: "block",
+                marginBottom: "6px",
+              }}
+            >
+              Categoria
+            </label>
+
+            <select
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                border: "1px solid #cbd5e1",
+                borderRadius: "6px",
+                fontSize: "13px",
+                marginBottom: "16px",
+              }}
+            >
+              <option value="Tecnologia">Tecnologia</option>
+              <option value="Games">Games</option>
+              <option value="Sustentabilidade">Sustentabilidade</option>
+              <option value="Educação">Educação</option>
+              <option value="Utilitários">Utilitários</option>
+              <option value="Geral">Geral</option>
+            </select>
+
+            <label
+              style={{
+                display: "block",
+                marginBottom: "6px",
+                fontWeight: "bold",
+              }}
+            >
+              Status da ideia
+            </label>
+
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                border: "1px solid #ddd",
+                borderRadius: "6px",
+                marginBottom: "16px",
+              }}
+            >
+              <option value="Disponível">Disponível</option>
+              <option value="Em desenvolvimento">Em desenvolvimento</option>
+              <option value="Concluída">Concluída</option>
+            </select>
+
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "12px",
+                color: "#475569",
+                marginBottom: "20px",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={anonimo === 1}
+                onChange={(e) => setAnonimo(e.target.checked ? 1 : 0)}
+              />
+              Publicar anonimamente
+            </label>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setPublicarModalOpen(false);
+                  setRascunhoParaPublicar(null);
+                }}
+                style={{
+                  background: "#f1f5f9",
+                  color: "#475569",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleTransformarEmIdeia}
+                disabled={publicando}
+                style={{
+                  background: "#07327c",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
+                {publicando ? "Publicando..." : "Publicar ideia"}
+              </button>
+            </div>
           </div>
         </div>
       )}

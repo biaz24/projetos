@@ -1,7 +1,21 @@
 import ideiaModel from "../models/ideiaModel.js";
 
-async function criarIdeia(usuarioId, titulo, descricao, categoria = "Geral", status = "Disponível", anonimo = false) {
-  return await ideiaModel.criarIdeia(usuarioId, titulo, descricao, categoria, status, anonimo);
+async function criarIdeia(
+  usuarioId,
+  titulo,
+  descricao,
+  categoria = "Geral",
+  status = "Disponível",
+  anonimo = false,
+) {
+  return await ideiaModel.criarIdeia(
+    usuarioId,
+    titulo,
+    descricao,
+    categoria,
+    status,
+    anonimo,
+  );
 }
 
 async function listarIdeias(options) {
@@ -10,15 +24,30 @@ async function listarIdeias(options) {
 
 async function buscarIdeiaPorId(id, usuarioId = null) {
   const ideia = await ideiaModel.buscarIdeiaPorId(id);
-  if (ideia) {
-    // Registra visualização assincronamente
+
+  if (ideia && usuarioId && Number(ideia.USUARIOS_ID) !== Number(usuarioId)) {
     ideiaModel.registrarVisualizacao(id, usuarioId);
   }
+
   return ideia;
 }
 
-async function atualizarIdeia(id, titulo, descricao, categoria = "Geral", status = "Disponível", anonimo = false) {
-  return await ideiaModel.atualizarIdeia(id, titulo, descricao, categoria, status, anonimo);
+async function atualizarIdeia(
+  id,
+  titulo,
+  descricao,
+  categoria = "Geral",
+  status = "Disponível",
+  anonimo = false,
+) {
+  return await ideiaModel.atualizarIdeia(
+    id,
+    titulo,
+    descricao,
+    categoria,
+    status,
+    anonimo,
+  );
 }
 
 async function deletarideia(id) {

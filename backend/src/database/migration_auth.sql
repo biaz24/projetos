@@ -114,9 +114,11 @@ CREATE TABLE IF NOT EXISTS VISUALIZACOES (
     CONSTRAINT fk_visualizacoes_ideia
         FOREIGN KEY (IDEIAS_ID)
         REFERENCES IDEIAS(ID)
-        ON DELETE CASCADE
-);
+        ON DELETE CASCADE,
 
+    CONSTRAINT unique_visualizacao_usuario_ideia
+        UNIQUE (IDEIAS_ID, USUARIOS_ID)
+);
 
 -- ============================================================
 -- TABELA: RASCUNHO
