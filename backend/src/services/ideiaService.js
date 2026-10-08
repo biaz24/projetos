@@ -57,6 +57,9 @@ async function deletarideia(id) {
 async function listarideiasPorusuario(usuarioId) {
   return await ideiaModel.listarIdeiasPorUsuario(usuarioId);
 }
+async function ocultarIdeia(id) {
+  return await ideiaModel.ocultarIdeia(id);
+}
 
 export default {
   criarIdeia,
@@ -65,4 +68,5 @@ export default {
   atualizarIdeia,
   deletarideia,
   listarideiasPorusuario,
+  ocultarIdeia,
 };

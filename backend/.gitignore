@@ -5,6 +5,7 @@
 # Dependências
 node_modules/
 **/node_modules/
+uploads/
 
 # Arquivos de build
 dist/

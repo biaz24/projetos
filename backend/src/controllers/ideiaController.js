@@ -19,7 +19,7 @@ async function criarIdeia(req, res) {
 
     const tituloFinal = titulo && titulo.trim() ? titulo.trim() : "Sem título";
 
-    await ideiaService.criarIdeia(
+    const resultado = await ideiaService.criarIdeia(
       usuarioId,
       tituloFinal,
       descricao.trim(),
@@ -30,6 +30,7 @@ async function criarIdeia(req, res) {
 
     return res.status(201).json({
       mensagem: "Ideia publicada com sucesso",
+      ideiaId: resultado.insertId,
     });
   } catch (erro) {
     console.error("Erro ao criar ideia:", erro);
@@ -91,10 +92,6 @@ async function buscarIdeiaPorId(req, res) {
   try {
     const { id } = req.params;
     const usuarioId = req.user?.id || null;
-
-    console.log("ID DA IDEIA:", id);
-    console.log("USUÁRIO LOGADO:", req.user);
-    console.log("USUÁRIO ID:", usuarioId);
 
     const ideia = await ideiaService.buscarIdeiaPorId(id, usuarioId);
 
@@ -209,6 +206,27 @@ async function listarideiasPorUsuario(req, res) {
   }
 }
 
+async function buscarIdeiaParaAdmin(req, res) {
+  try {
+    const { id } = req.params;
+
+    const ideia = await ideiaService.buscarIdeiaPorId(id);
+
+    if (!ideia) {
+      return res.status(404).json({
+        erro: "Ideia não encontrada",
+      });
+    }
+
+    return res.status(200).json(ideia);
+  } catch (erro) {
+    console.error("Erro ao buscar ideia para administrador:", erro);
+
+    return res.status(500).json({
+      erro: "Erro ao buscar detalhes da ideia",
+    });
+  }
+}
 export default {
   criarIdeia,
   listarIdeias,
@@ -216,4 +234,5 @@ export default {
   atualizarIdeia,
   deletarideia,
   listarideiasPorUsuario,
+  buscarIdeiaParaAdmin,
 };

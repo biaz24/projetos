@@ -67,10 +67,21 @@ export const IdeiaDetalhesPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [curtido, setCurtido] = useState(false);
+  const [totalCurtidas, setTotalCurtidas] = useState(0);
+  const [carregandoCurtida, setCarregandoCurtida] = useState(false);
+
+  const [anexos, setAnexos] = useState<any[]>([]);
+
   // Estados dos Modais
   const [isEditIdeaModalOpen, setIsEditIdeaModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportMotivo, setReportMotivo] = useState("");
+  const [reportDescricao, setReportDescricao] = useState("");
+  const [sendingReport, setSendingReport] = useState(false);
 
   // Formulário Edição de Ideia
   const [editTitulo, setEditTitulo] = useState("");
@@ -98,9 +109,10 @@ export const IdeiaDetalhesPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const [ideiaData, comentariosData] = await Promise.all([
+      const [ideiaData, comentariosData, anexosData] = await Promise.all([
         fetchApi<Ideia>(`/ideias/${id}`).catch(() => null),
         fetchApi<Comentario[]>(`/ideias/${id}/comentarios`).catch(() => []),
+        fetchApi<any[]>(`/ideias/${id}/anexos`).catch(() => []),
       ]);
 
       if (!ideiaData) {
@@ -111,6 +123,7 @@ export const IdeiaDetalhesPage: React.FC = () => {
 
       setIdeia(ideiaData);
       setComentarios(Array.isArray(comentariosData) ? comentariosData : []);
+      setAnexos(Array.isArray(anexosData) ? anexosData : []);
     } catch (err: any) {
       console.error("Erro ao carregar ideia:", err);
       setError("Erro ao carregar as informações da ideia.");
@@ -118,13 +131,70 @@ export const IdeiaDetalhesPage: React.FC = () => {
       setLoading(false);
     }
   };
+  //curtida
+  const carregarCurtida = async () => {
+    if (!id) return;
+
+    try {
+      const [curtidaData, totalData] = await Promise.all([
+        fetchApi<{ curtido: boolean }>(`/curtidas/${id}/verificar`),
+        fetchApi<{ total: number }>(`/curtidas/${id}`),
+      ]);
+
+      setCurtido(curtidaData.curtido);
+      setTotalCurtidas(totalData.total);
+    } catch (erro) {
+      console.error("Erro ao carregar curtidas:", erro);
+    }
+  };
+
+  const handleToggleCurtida = async () => {
+    if (!ideia || carregandoCurtida) return;
+
+    try {
+      setCarregandoCurtida(true);
+      //se ja foi curtido, apertando no botão vai descurtir
+      if (curtido) {
+        // Remover curtida
+        const resposta = await fetchApi<{ total: number }>(
+          `/curtidas/${ideia.ID}`,
+          {
+            method: "DELETE",
+          },
+        );
+
+        setCurtido(false);
+        setTotalCurtidas(resposta.total);
+      } else {
+        // Adicionar curtida
+        const resposta = await fetchApi<{ total: number }>(`/curtidas`, {
+          method: "POST",
+          body: JSON.stringify({
+            ideiaId: ideia.ID,
+          }),
+        });
+
+        setCurtido(true);
+        setTotalCurtidas(resposta.total);
+      }
+    } catch (erro) {
+      console.error("Erro ao alterar curtida:", erro);
+    } finally {
+      setCarregandoCurtida(false);
+    }
+  };
+
   useEffect(() => {
     if (!id) return;
+
     if (visualizacaoRegistrada.current === id) {
       return;
     }
+
     visualizacaoRegistrada.current = id;
+
     carregarIdeiaEComentarios();
+    carregarCurtida();
   }, [id]);
 
   // Edição da Ideia
@@ -189,6 +259,35 @@ export const IdeiaDetalhesPage: React.FC = () => {
     } catch (err: any) {
       showToast(err.message || "Erro ao excluir ideia", "error");
       setDeletingIdea(false);
+    }
+  };
+
+  const handleEnviarDenuncia = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!ideia || !reportMotivo || sendingReport) return;
+
+    setSendingReport(true);
+
+    try {
+      await fetchApi("/denuncias", {
+        method: "POST",
+        body: JSON.stringify({
+          ideiaId: ideia.ID,
+          motivo: reportMotivo,
+          descricao: reportDescricao.trim() || null,
+        }),
+      });
+
+      setIsReportModalOpen(false);
+      setReportMotivo("");
+      setReportDescricao("");
+
+      showToast("Denúncia enviada com sucesso!", "success");
+    } catch (err: any) {
+      showToast(err.message || "Erro ao enviar denúncia", "error");
+    } finally {
+      setSendingReport(false);
     }
   };
 
@@ -436,25 +535,47 @@ export const IdeiaDetalhesPage: React.FC = () => {
                     {/* Ações de Edição e Exclusão para o Autor da Ideia */}
                     <div style={{ display: "flex", gap: "10px" }}>
                       {!isIdeaOwner && (
-                        <button
-                          onClick={() => setIsContactModalOpen(true)}
-                          style={{
-                            background: "#07327c",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "8px",
-                            padding: "8px 16px",
-                            fontSize: "12px",
-                            fontWeight: "bold",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                          }}
-                        >
-                          <i className="fa-solid fa-handshake"></i>
-                          Adotar / Contatar Autor
-                        </button>
+                        <>
+                          <button
+                            onClick={() => setIsContactModalOpen(true)}
+                            style={{
+                              background: "#07327c",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "8px",
+                              padding: "8px 16px",
+                              fontSize: "12px",
+                              fontWeight: "bold",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                            }}
+                          >
+                            <i className="fa-solid fa-handshake"></i>
+                            Adotar / Contatar Autor
+                          </button>
+
+                          <button
+                            onClick={() => setIsReportModalOpen(true)}
+                            style={{
+                              background: "#fef2f2",
+                              color: "#dc2626",
+                              border: "1px solid #fecaca",
+                              borderRadius: "8px",
+                              padding: "8px 14px",
+                              fontSize: "12px",
+                              fontWeight: "bold",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                            }}
+                          >
+                            <i className="fa-solid fa-flag"></i>
+                            Denunciar
+                          </button>
+                        </>
                       )}
 
                       {isIdeaOwner && (
@@ -565,6 +686,86 @@ export const IdeiaDetalhesPage: React.FC = () => {
               >
                 {ideia.DESCRICAO}
               </div>
+              {/* Anexos da Ideia */}
+              {anexos.length > 0 && (
+                <div
+                  style={{
+                    marginBottom: "20px",
+                    padding: "16px",
+                    background: "#f8fafc",
+                    borderRadius: "10px",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                      color: "#1e3a8a",
+                      margin: "0 0 12px 0",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <i className="fa-solid fa-paperclip"></i>
+                    Anexos
+                  </h3>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                    }}
+                  >
+                    {anexos.map((anexo) => (
+                      <a
+                        key={anexo.ID}
+                        href={`http://localhost:3000/${anexo.CAMINHO}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          padding: "10px 12px",
+                          background: "white",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "8px",
+                          textDecoration: "none",
+                          color: "#334155",
+                          fontSize: "12px",
+                        }}
+                      >
+                        <i
+                          className={
+                            anexo.TIPO === "application/pdf" ||
+                            anexo.NOME_ARQUIVO.toLowerCase().endsWith(".pdf")
+                              ? "fa-solid fa-file-pdf"
+                              : "fa-solid fa-file-image"
+                          }
+                          style={{
+                            fontSize: "18px",
+                            color:
+                              anexo.TIPO === "application/pdf" ||
+                              anexo.NOME_ARQUIVO.toLowerCase().endsWith(".pdf")
+                                ? "#ef4444"
+                                : "#2563eb",
+                          }}
+                        ></i>
+
+                        <span style={{ flex: 1 }}>{anexo.NOME_ARQUIVO}</span>
+
+                        <i
+                          className="fa-solid fa-arrow-up-right-from-square"
+                          style={{ fontSize: "11px", color: "#64748b" }}
+                        ></i>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Barra de Métricas */}
               <div
@@ -620,6 +821,47 @@ export const IdeiaDetalhesPage: React.FC = () => {
                       Visualizações Reais
                     </small>
                   </div>
+                  <button
+                    // curtida
+                    onClick={handleToggleCurtida}
+                    disabled={carregandoCurtida}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      border: "none",
+                      background: "transparent",
+                      cursor: carregandoCurtida ? "default" : "pointer",
+                      padding: "4px",
+                    }}
+                  >
+                    <i
+                      className={
+                        curtido ? "fa-solid fa-heart" : "fa-regular fa-heart"
+                      }
+                      style={{
+                        color: curtido ? "#e74c3c" : "#6b7280",
+                        fontSize: "20px",
+                      }}
+                    ></i>
+
+                    <span
+                      style={{
+                        fontWeight: "bold",
+                        color: "#374151",
+                      }}
+                    >
+                      {totalCurtidas}
+                    </span>
+
+                    <small
+                      style={{
+                        color: "#6b7280",
+                      }}
+                    >
+                      Curtidas
+                    </small>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1412,6 +1654,204 @@ export const IdeiaDetalhesPage: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Denúncia */}
+      {isReportModalOpen && ideia && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 200,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "14px",
+              padding: "24px",
+              maxWidth: "450px",
+              width: "100%",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: "16px",
+                  color: "#dc2626",
+                  margin: 0,
+                }}
+              >
+                <i
+                  className="fa-solid fa-flag"
+                  style={{ marginRight: "8px" }}
+                ></i>
+                Denunciar ideia
+              </h3>
+
+              <button
+                type="button"
+                onClick={() => setIsReportModalOpen(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "16px",
+                  cursor: "pointer",
+                  color: "#64748b",
+                }}
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <p
+              style={{
+                fontSize: "12px",
+                color: "#64748b",
+                lineHeight: "1.5",
+                marginBottom: "16px",
+              }}
+            >
+              Selecione o motivo pelo qual você está denunciando esta ideia.
+            </p>
+
+            <form
+              onSubmit={handleEnviarDenuncia}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <div>
+                <label
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    display: "block",
+                    marginBottom: "5px",
+                    color: "#334155",
+                  }}
+                >
+                  Motivo *
+                </label>
+
+                <select
+                  value={reportMotivo}
+                  onChange={(e) => setReportMotivo(e.target.value)}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "6px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "12px",
+                  }}
+                >
+                  <option value="">Selecione um motivo</option>
+                  <option value="Conteúdo inadequado">
+                    Conteúdo inadequado
+                  </option>
+                  <option value="Spam">Spam</option>
+                  <option value="Conteúdo ofensivo">Conteúdo ofensivo</option>
+                  <option value="Informação enganosa">
+                    Informação enganosa
+                  </option>
+                  <option value="Violação das regras">
+                    Violação das regras
+                  </option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    display: "block",
+                    marginBottom: "5px",
+                    color: "#334155",
+                  }}
+                >
+                  Descrição
+                </label>
+
+                <textarea
+                  value={reportDescricao}
+                  onChange={(e) => setReportDescricao(e.target.value)}
+                  placeholder="Explique brevemente o motivo da denúncia..."
+                  rows={4}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "6px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "12px",
+                    fontFamily: "inherit",
+                    resize: "vertical",
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "10px",
+                  marginTop: "4px",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: "#f1f5f9",
+                    color: "#334155",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={sendingReport}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: "#dc2626",
+                    color: "white",
+                    fontWeight: "bold",
+                    cursor: sendingReport ? "default" : "pointer",
+                    opacity: sendingReport ? 0.7 : 1,
+                  }}
+                >
+                  {sendingReport ? "Enviando..." : "Enviar denúncia"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

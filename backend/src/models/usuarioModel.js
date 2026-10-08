@@ -10,14 +10,14 @@ async function cadastrarUsuario(nome, email, senha) {
 
 async function listarUsuarios() {
   const [usuarios] = await connection.query(
-    "SELECT ID as id, NOME as nome, EMAIL as email, CREATED_AT as created_at FROM USUARIOS",
+    "SELECT ID as id, NOME as nome, EMAIL as email, TIPO as tipo, CREATED_AT as created_at FROM USUARIOS",
   );
   return usuarios;
 }
 
 async function buscarUsuarioPorId(id) {
   const [usuarios] = await connection.query(
-    "SELECT ID as id, NOME as nome, EMAIL as email, CREATED_AT as created_at FROM USUARIOS WHERE ID = ?",
+    "SELECT ID as id, NOME as nome, EMAIL as email, TIPO as tipo, CREATED_AT as created_at FROM USUARIOS WHERE ID = ?",
     [id],
   );
   return usuarios[0];

@@ -35,6 +35,15 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+      "/curtidas": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+
+      "/denuncias": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
     },
   },
 });

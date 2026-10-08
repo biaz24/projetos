@@ -2,6 +2,8 @@ export interface Usuario {
   id: number;
   nome: string;
   email: string;
+  // recebe o tipo para ver se é admin
+  tipo?: string;
   created_at?: string;
   CREATED_AT?: string;
 }

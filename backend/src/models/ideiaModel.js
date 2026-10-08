@@ -179,10 +179,22 @@ async function listarIdeiasPorUsuario(usuarioId) {
     FROM IDEIAS i
     JOIN USUARIOS u ON i.USUARIOS_ID = u.ID
     WHERE i.USUARIOS_ID = ?
+    WHERE i.VISIBILIDADE = 'Publica'
     ORDER BY i.CREATED_AT DESC`,
     [usuarioId],
   );
   return ideias;
+}
+
+async function ocultarIdeia(id) {
+  const [resultado] = await connection.query(
+    `UPDATE IDEIAS
+     SET VISIBILIDADE = 'Oculta'
+     WHERE ID = ?`,
+    [id],
+  );
+
+  return resultado;
 }
 
 export default {
@@ -193,4 +205,5 @@ export default {
   atualizarIdeia,
   deletarideia,
   listarIdeiasPorUsuario,
+  ocultarIdeia,
 };

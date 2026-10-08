@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import path from "path";
 
 import usuarioRoutes from "./routes/usuarioRoutes.js";
 import ideiaRoutes from "./routes/ideiaRoutes.js";
@@ -8,6 +9,10 @@ import comentarioRoutes from "./routes/comentarioRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import rascunhoRoutes from "./routes/rascunhoRoutes.js";
 import favoritoRoutes from "./routes/favoritoRoutes.js";
+import curtidaRoutes from "./routes/curtidaRoutes.js";
+import anexoRoutes from "./routes/anexoRoutes.js";
+import denunciaRoutes from "./routes/denunciaRoutes.js";
+import notificacaoRoutes from "./routes/notificacaoRoutes.js";
 
 const app = express();
 
@@ -40,6 +45,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(cookieParser());
+app.use("/uploads", express.static(path.resolve("uploads")));
 
 app.use(usuarioRoutes);
 app.use(ideiaRoutes);
@@ -47,6 +53,10 @@ app.use(comentarioRoutes);
 app.use(authRoutes);
 app.use(rascunhoRoutes);
 app.use(favoritoRoutes);
+app.use(curtidaRoutes);
+app.use(anexoRoutes);
+app.use(denunciaRoutes);
+app.use(notificacaoRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ erro: "Rota não encontrada" });

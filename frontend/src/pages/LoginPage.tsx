@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../../css/style.css";
@@ -7,11 +7,23 @@ export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
+  const [message, setMessage] = useState<{
+    text: string;
+    isError: boolean;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Criando variável para usar o useRef:
+  const emailRef = useRef<HTMLInputElement>(null);
 
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // React, quando a tela estiver pronta, execute isso:
+  useEffect(() => {
+    // Será executado pelo useEffect
+    emailRef.current?.focus();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,8 +61,8 @@ export const LoginPage: React.FC = () => {
           </h1>
 
           <p>
-            Compartilhe conceitos, inspire pessoas <br />
-            e dê uma nova chance às boas ideias.
+            Compartilhe conceitos, inspire pessoas <br />e dê uma nova chance às
+            boas ideias.
           </p>
 
           <img
@@ -75,6 +87,7 @@ export const LoginPage: React.FC = () => {
               <div className="input-box">
                 <i className="fa-regular fa-envelope"></i>
                 <input
+                  ref={emailRef} // Liga a referência ao campo email
                   type="email"
                   placeholder="Digite seu e-mail"
                   value={email}

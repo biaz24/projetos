@@ -20,7 +20,7 @@ async function login(email, senha) {
     throw new Error("Credenciais inválidas");
   }
 
-  const payload = { id: usuario.ID, email: usuario.EMAIL };
+  const payload = { id: usuario.ID, email: usuario.EMAIL, tipo: usuario.TIPO };
 
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
@@ -28,7 +28,11 @@ async function login(email, senha) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  await refreshTokenModel.salvarRefreshToken(usuario.ID, refreshToken, expiresAt);
+  await refreshTokenModel.salvarRefreshToken(
+    usuario.ID,
+    refreshToken,
+    expiresAt,
+  );
 
   return {
     accessToken,
@@ -37,6 +41,7 @@ async function login(email, senha) {
       id: usuario.ID,
       nome: usuario.NOME,
       email: usuario.EMAIL,
+      tipo: usuario.TIPO,
       created_at: usuario.CREATED_AT,
     },
   };
@@ -53,6 +58,7 @@ async function me(id) {
     id: usuario.id || usuario.ID,
     nome: usuario.nome || usuario.NOME,
     email: usuario.email || usuario.EMAIL,
+    tipo: usuario.tipo || usuario.TIPO,
     created_at: usuario.created_at || usuario.CREATED_AT,
   };
 }
@@ -78,7 +84,7 @@ async function refresh(oldToken) {
   }
 
   const tokenExistente = await refreshTokenModel.buscarPorToken(oldToken);
-  
+
   if (!tokenExistente) {
     // ALERTA DE SEGURANÇA: Token válido mas que não está no banco (possível reuso/roubo de token!)
     // Revoga todas as sessões do usuário preventivamente.
@@ -90,14 +96,22 @@ async function refresh(oldToken) {
   await refreshTokenModel.apagarPorToken(oldToken);
 
   // 2. Gera novo par de tokens
-  const payload = { id: decoded.id, email: decoded.email };
+  const payload = {
+    id: decoded.id,
+    email: decoded.email,
+    tipo: decoded.tipo,
+  };
   const novoAccessToken = generateAccessToken(payload);
   const novoRefreshToken = generateRefreshToken(payload);
 
   // 3. Salva novo refresh token no banco
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
-  await refreshTokenModel.salvarRefreshToken(decoded.id, novoRefreshToken, expiresAt);
+  await refreshTokenModel.salvarRefreshToken(
+    decoded.id,
+    novoRefreshToken,
+    expiresAt,
+  );
 
   return {
     accessToken: novoAccessToken,

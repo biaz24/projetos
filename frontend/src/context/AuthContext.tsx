@@ -21,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           id: u.id || u.ID,
           nome: u.nome || u.NOME,
           email: u.email || u.EMAIL,
+          tipo: u.tipo || u.TIPO,
           created_at: u.created_at || u.CREATED_AT,
         });
       } else {
@@ -48,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         id: u.id || u.ID,
         nome: u.nome || u.NOME,
         email: u.email || u.EMAIL,
+        tipo: u.tipo || u.TIPO,
         created_at: u.created_at || u.CREATED_AT,
       });
     }

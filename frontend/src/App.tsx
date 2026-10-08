@@ -11,6 +11,7 @@ import { SalvosPage } from "./pages/SalvosPage";
 import { PerfilPage } from "./pages/PerfilPage";
 import { RascunhosPage } from "./pages/RascunhosPage";
 import { IdeiaDetalhesPage } from "./pages/IdeiaDetalhesPage";
+import AdminDenunciasPage from "./pages/AdminDenunciasPage";
 
 export const App: React.FC = () => {
   return (
@@ -82,6 +83,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <IdeiaDetalhesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/denuncias"
+              element={
+                <ProtectedRoute>
+                  <AdminDenunciasPage />
                 </ProtectedRoute>
               }
             />

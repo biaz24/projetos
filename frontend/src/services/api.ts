@@ -22,13 +22,16 @@ export async function fetchApi<T>(
   options: RequestInit = {},
   retry = true,
 ): Promise<T> {
-  const defaultHeaders: HeadersInit = {
-    "Content-Type": "application/json",
-  };
+  const defaultHeaders: HeadersInit = {};
+
+  if (!(options.body instanceof FormData)) {
+    defaultHeaders["Content-Type"] = "application/json";
+  }
 
   const config: RequestInit = {
     ...options,
     credentials: "include", // Garante o envio e recebimento de cookies HttpOnly
+
     headers: {
       ...defaultHeaders,
       ...options.headers,
@@ -42,7 +45,8 @@ export async function fetchApi<T>(
     response.status === 401 &&
     retry &&
     !url.includes("/auth/login") &&
-    !url.includes("/auth/refresh")
+    !url.includes("/auth/refresh") &&
+    !url.includes("/auth/me")
   ) {
     if (isRefreshing) {
       // Se já estiver atualizando o token, aguarda na fila

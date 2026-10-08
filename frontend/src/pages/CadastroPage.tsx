@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../../css/style.css";
@@ -10,11 +10,20 @@ export const CadastroPage: React.FC = () => {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
-  const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
+  const [message, setMessage] = useState<{
+    text: string;
+    isError: boolean;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const { cadastrar, login } = useAuth();
   const navigate = useNavigate();
+
+  const nomeRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    nomeRef.current?.focus();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +35,10 @@ export const CadastroPage: React.FC = () => {
     }
 
     if (senha.length < 6) {
-      setMessage({ text: "A senha deve ter no mínimo 6 caracteres!", isError: true });
+      setMessage({
+        text: "A senha deve ter no mínimo 6 caracteres!",
+        isError: true,
+      });
       return;
     }
 
@@ -35,7 +47,10 @@ export const CadastroPage: React.FC = () => {
     try {
       await cadastrar(nome, email, senha);
       await login(email, senha);
-      setMessage({ text: "Cadastro realizado com sucesso! Redirecionando...", isError: false });
+      setMessage({
+        text: "Cadastro realizado com sucesso! Redirecionando...",
+        isError: false,
+      });
       setTimeout(() => {
         navigate("/home");
       }, 400);
@@ -89,6 +104,7 @@ export const CadastroPage: React.FC = () => {
               <div className="input-box">
                 <i className="fa-regular fa-user"></i>
                 <input
+                  ref={nomeRef}
                   type="text"
                   placeholder="Digite seu nome de usuário"
                   value={nome}
@@ -144,7 +160,9 @@ export const CadastroPage: React.FC = () => {
                 />
                 <i
                   className={`fa-regular ${mostrarConfirmarSenha ? "fa-eye-slash" : "fa-eye"}`}
-                  onClick={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)}
+                  onClick={() =>
+                    setMostrarConfirmarSenha(!mostrarConfirmarSenha)
+                  }
                   style={{ cursor: "pointer" }}
                 ></i>
               </div>
@@ -156,7 +174,10 @@ export const CadastroPage: React.FC = () => {
               {message && (
                 <p
                   id="message"
-                  style={{ color: message.isError ? "red" : "green", marginTop: "15px" }}
+                  style={{
+                    color: message.isError ? "red" : "green",
+                    marginTop: "15px",
+                  }}
                 >
                   {message.text}
                 </p>

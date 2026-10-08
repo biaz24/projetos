@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AppLayout } from "../components/AppLayout";
 import { IdeaCard } from "../components/IdeaCard";
 import { EmptyState } from "../components/EmptyState";
@@ -16,7 +16,12 @@ const CATEGORIES_OPTIONS = [
   "Geral",
 ];
 
-const STATUS_OPTIONS = ["Todos", "Disponível", "Em desenvolvimento", "Concluída"];
+const STATUS_OPTIONS = [
+  "Todos",
+  "Disponível",
+  "Em desenvolvimento",
+  "Concluída",
+];
 
 export const HomePage: React.FC = () => {
   const { showToast } = useToast();
@@ -43,6 +48,18 @@ export const HomePage: React.FC = () => {
   const [anonimo, setAnonimo] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const [arquivo, setArquivo] = useState<File | null>(null);
+
+  // Para utilização do useRef no campo do título da ideia:
+  const pesquisaRef = useRef<HTMLInputElement>(null);
+
+  // Para utilização do useRef no campo de buscar ideias (Referência para o campo de título)
+  const tituloRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    pesquisaRef.current?.focus();
+  }, []);
+
   // Debounce na busca por texto
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -58,11 +75,15 @@ export const HomePage: React.FC = () => {
       const params = new URLSearchParams();
       params.append("page", String(page));
       params.append("limit", "10");
-      if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
-      if (categoriaFilter !== "Todas") params.append("categoria", categoriaFilter);
+      if (debouncedSearch.trim())
+        params.append("search", debouncedSearch.trim());
+      if (categoriaFilter !== "Todas")
+        params.append("categoria", categoriaFilter);
       if (statusFilter !== "Todos") params.append("status", statusFilter);
 
-      const res = await fetchApi<PaginatedIdeias | Ideia[]>(`/ideias?${params.toString()}`);
+      const res = await fetchApi<PaginatedIdeias | Ideia[]>(
+        `/ideias?${params.toString()}`,
+      );
 
       if (res && "ideias" in res) {
         setIdeias(res.ideias);
@@ -99,11 +120,17 @@ export const HomePage: React.FC = () => {
     setCategoria("Geral");
     setStatus("Disponível");
     setAnonimo(false);
+    setArquivo(null);
     setIsModalOpen(true);
+
+    setTimeout(() => {
+      tituloRef.current?.focus();
+    }, 0);
   };
 
   const handlePublicarIdeia = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!descricao.trim()) {
       showToast("Por favor, digite a descrição da sua ideia.", "error");
       return;
@@ -112,7 +139,7 @@ export const HomePage: React.FC = () => {
     setSubmitting(true);
 
     try {
-      await fetchApi("/ideias", {
+      const resultado = await fetchApi<{ ideiaId: number }>("/ideias", {
         method: "POST",
         body: JSON.stringify({
           titulo: titulo.trim(),
@@ -122,6 +149,17 @@ export const HomePage: React.FC = () => {
           anonimo: anonimo ? 1 : 0,
         }),
       });
+
+      // Se o usuário escolheu um arquivo, envia o arquivo
+      if (arquivo) {
+        const formData = new FormData();
+        formData.append("arquivo", arquivo);
+
+        await fetchApi(`/ideias/${resultado.ideiaId}/anexos`, {
+          method: "POST",
+          body: formData,
+        });
+      }
 
       showToast("Ideia publicada com sucesso!", "success");
       setIsModalOpen(false);
@@ -135,8 +173,15 @@ export const HomePage: React.FC = () => {
 
   return (
     <AppLayout>
-      <section className="content">
+      {/* Camada de carregamento com símbolo giratório */}
+      <div className="loading-overlay" aria-label="carregando">
+        <div className="loading-spinner"></div>
+      </div>
+
+      <section className="content home-entrada">
+        {/* cabeçalho da página */}
         <div
+          className="home-cabecalho"
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -149,7 +194,8 @@ export const HomePage: React.FC = () => {
           <div>
             <h1>Início</h1>
             <p className="description" style={{ margin: 0 }}>
-              Explore ideias abandonadas e compartilhe novos projetos com a comunidade.
+              Explore ideias abandonadas e compartilhe novos projetos com a
+              comunidade.
             </p>
           </div>
 
@@ -177,6 +223,7 @@ export const HomePage: React.FC = () => {
 
         {/* Barra de Pesquisa e Filtros Combinados */}
         <div
+          className="home-filtros"
           style={{
             background: "white",
             borderRadius: "12px",
@@ -188,9 +235,21 @@ export const HomePage: React.FC = () => {
             gap: "12px",
           }}
         >
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
             {/* Campo de Pesquisa */}
-            <div style={{ flex: 1, minWidth: "220px", position: "relative" }}>
+            <div
+              style={{
+                flex: 1,
+                minWidth: "220px",
+                position: "relative",
+              }}
+            >
               <i
                 className="fa-solid fa-magnifying-glass"
                 style={{
@@ -203,6 +262,7 @@ export const HomePage: React.FC = () => {
                 }}
               ></i>
               <input
+                ref={pesquisaRef}
                 type="text"
                 placeholder="Pesquisar por título ou descrição..."
                 value={search}
@@ -269,7 +329,9 @@ export const HomePage: React.FC = () => {
             </select>
 
             {/* Botão Limpar Filtros */}
-            {(debouncedSearch || categoriaFilter !== "Todas" || statusFilter !== "Todos") && (
+            {(debouncedSearch ||
+              categoriaFilter !== "Todas" ||
+              statusFilter !== "Todos") && (
               <button
                 type="button"
                 onClick={handleClearFilters}
@@ -291,15 +353,27 @@ export const HomePage: React.FC = () => {
         </div>
 
         {/* Feed de Ideias */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+        <div
+          className="home-feed-titulo"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "14px",
+          }}
+        >
           <h2 style={{ fontSize: "15px", color: "#1e3a8a", margin: 0 }}>
             Feed de Ideias {totalCount > 0 && `(${totalCount})`}
           </h2>
         </div>
 
+        {/* Conteúdo do feed */}
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px 0" }}>
-            <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: "1.8rem", color: "#07327c" }}></i>
+            <i
+              className="fa-solid fa-spinner fa-spin"
+              style={{ fontSize: "1.8rem", color: "#07327c" }}
+            ></i>
           </div>
         ) : ideias.length === 0 ? (
           <EmptyState
@@ -308,14 +382,23 @@ export const HomePage: React.FC = () => {
             description="Tente ajustar os termos da busca ou os filtros de categoria e status."
           />
         ) : (
-          <div>
-            {ideias.map((ideia) => (
-              <IdeaCard key={ideia.ID} ideia={ideia} />
+          <div className="home-lista-ideias">
+            {ideias.map((ideia, index) => (
+              <div
+                key={ideia.ID}
+                className="home-card-entrada"
+                style={{
+                  animationDelay: `${0.1 + index * 0.08}s`,
+                }}
+              >
+                <IdeaCard key={ideia.ID} ideia={ideia} />
+              </div>
             ))}
 
             {/* Controles de Paginação */}
             {totalPages > 1 && (
               <div
+                className="home-paginacao"
                 style={{
                   display: "flex",
                   justifyContent: "center",
@@ -338,11 +421,20 @@ export const HomePage: React.FC = () => {
                     cursor: page === 1 ? "not-allowed" : "pointer",
                   }}
                 >
-                  <i className="fa-solid fa-chevron-left" style={{ marginRight: "4px" }}></i>
+                  <i
+                    className="fa-solid fa-chevron-left"
+                    style={{ marginRight: "4px" }}
+                  ></i>
                   Anterior
                 </button>
 
-                <span style={{ fontSize: "12px", color: "#475569", fontWeight: "bold" }}>
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: "#475569",
+                    fontWeight: "bold",
+                  }}
+                >
                   Página {page} de {totalPages}
                 </span>
 
@@ -361,7 +453,10 @@ export const HomePage: React.FC = () => {
                   }}
                 >
                   Próxima
-                  <i className="fa-solid fa-chevron-right" style={{ marginLeft: "4px" }}></i>
+                  <i
+                    className="fa-solid fa-chevron-right"
+                    style={{ marginLeft: "4px" }}
+                  ></i>
                 </button>
               </div>
             )}
@@ -396,23 +491,45 @@ export const HomePage: React.FC = () => {
               boxShadow: "0 10px 30px rgba(0, 0, 0, 0.2)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "18px",
+              }}
+            >
               <h3 style={{ fontSize: "16px", color: "#1e3a8a", margin: 0 }}>
                 Publicar Nova Ideia
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", color: "#64748b" }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "18px",
+                  cursor: "pointer",
+                  color: "#64748b",
+                }}
               >
                 <i className="fa-solid fa-xmark"></i>
               </button>
             </div>
 
             <form onSubmit={handlePublicarIdeia}>
-              <label style={{ fontSize: "12px", color: "#1e3a8a", fontWeight: "bold", display: "block", marginBottom: "6px" }}>
+              <label
+                style={{
+                  fontSize: "12px",
+                  color: "#1e3a8a",
+                  fontWeight: "bold",
+                  display: "block",
+                  marginBottom: "6px",
+                }}
+              >
                 Título da ideia (opcional)
               </label>
               <input
+                ref={tituloRef}
                 type="text"
                 placeholder="Ex: Plataforma de Reciclagem de Eletrônicos"
                 value={titulo}
@@ -429,9 +546,19 @@ export const HomePage: React.FC = () => {
               />
 
               {/* Seletor de Categoria */}
-              <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+              <div
+                style={{ display: "flex", gap: "12px", marginBottom: "16px" }}
+              >
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: "12px", color: "#1e3a8a", fontWeight: "bold", display: "block", marginBottom: "6px" }}>
+                  <label
+                    style={{
+                      fontSize: "12px",
+                      color: "#1e3a8a",
+                      fontWeight: "bold",
+                      display: "block",
+                      marginBottom: "6px",
+                    }}
+                  >
                     Categoria
                   </label>
                   <select
@@ -446,17 +573,27 @@ export const HomePage: React.FC = () => {
                       outline: "none",
                     }}
                   >
-                    {CATEGORIES_OPTIONS.filter((c) => c !== "Todas").map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
+                    {CATEGORIES_OPTIONS.filter((c) => c !== "Todas").map(
+                      (c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ),
+                    )}
                   </select>
                 </div>
 
                 {/* Seletor de Status */}
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: "12px", color: "#1e3a8a", fontWeight: "bold", display: "block", marginBottom: "6px" }}>
+                  <label
+                    style={{
+                      fontSize: "12px",
+                      color: "#1e3a8a",
+                      fontWeight: "bold",
+                      display: "block",
+                      marginBottom: "6px",
+                    }}
+                  >
                     Status Inicial
                   </label>
                   <select
@@ -480,8 +617,21 @@ export const HomePage: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                <label style={{ fontSize: "12px", color: "#1e3a8a", fontWeight: "bold" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "6px",
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: "12px",
+                    color: "#1e3a8a",
+                    fontWeight: "bold",
+                  }}
+                >
                   Descrição da ideia *
                 </label>
                 <span style={{ fontSize: "10px", color: "#94a3b8" }}>
@@ -509,14 +659,112 @@ export const HomePage: React.FC = () => {
                 }}
               />
 
+              {/* Anexo */}
+              <div style={{ marginBottom: "20px" }}>
+                <label
+                  style={{
+                    fontSize: "12px",
+                    color: "#1e3a8a",
+                    fontWeight: "bold",
+                    display: "block",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Anexo (opcional)
+                </label>
+
+                <label
+                  htmlFor="arquivo"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    background: "#f1f5f9",
+                    color: "#1e3a8a",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "8px",
+                    padding: "10px 14px",
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                  }}
+                >
+                  <i className="fa-solid fa-paperclip"></i>
+                  Adicionar arquivo
+                </label>
+
+                <input
+                  id="arquivo"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  onChange={(e) => {
+                    const arquivoSelecionado = e.target.files?.[0] || null;
+                    setArquivo(arquivoSelecionado);
+                  }}
+                  style={{ display: "none" }}
+                />
+
+                <span
+                  style={{
+                    display: "block",
+                    marginTop: "6px",
+                    fontSize: "10px",
+                    color: "#94a3b8",
+                  }}
+                >
+                  JPG, PNG ou PDF • máximo 10 MB
+                </span>
+
+                {arquivo && (
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      fontSize: "11px",
+                      color: "#475569",
+                    }}
+                  >
+                    <i
+                      className="fa-solid fa-file"
+                      style={{ marginRight: "6px" }}
+                    ></i>
+
+                    {arquivo.name}
+                  </div>
+                )}
+              </div>
+
               {/* Opções de Visibilidade */}
-              <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "8px", marginBottom: "20px" }}>
-                <span style={{ fontSize: "11px", fontWeight: "bold", color: "#475569", display: "block", marginBottom: "8px" }}>
+              <div
+                style={{
+                  background: "#f8fafc",
+                  padding: "12px 16px",
+                  borderRadius: "8px",
+                  marginBottom: "20px",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    color: "#475569",
+                    display: "block",
+                    marginBottom: "8px",
+                  }}
+                >
                   Visibilidade do Autor:
                 </span>
 
                 <div style={{ display: "flex", gap: "20px" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#1e3a8a", cursor: "pointer" }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "12px",
+                      color: "#1e3a8a",
+                      cursor: "pointer",
+                    }}
+                  >
                     <input
                       type="radio"
                       name="anonimoModal"
@@ -526,7 +774,16 @@ export const HomePage: React.FC = () => {
                     Público (com seu nome)
                   </label>
 
-                  <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#1e3a8a", cursor: "pointer" }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "12px",
+                      color: "#1e3a8a",
+                      cursor: "pointer",
+                    }}
+                  >
                     <input
                       type="radio"
                       name="anonimoModal"
@@ -538,7 +795,14 @@ export const HomePage: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              {/* Botões do modal */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "10px",
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
