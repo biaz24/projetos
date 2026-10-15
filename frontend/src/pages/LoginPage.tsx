@@ -1,3 +1,4 @@
+// useRef --> Para acessar diretamente o campo e-mail.
 import React, { useRef, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -136,7 +137,7 @@ export const LoginPage: React.FC = () => {
             </form>
 
             <div className="register">
-              Não tem login? <Link to="/cadastro">Cadastre-se</Link>
+              Não tem login?{" "} <Link to="/cadastro">Cadastre-se</Link>
             </div>
           </div>
         </div>

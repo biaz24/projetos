@@ -15,7 +15,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Controla a abertura e o fechamento do modal
   const [confirmarSaida, setConfirmarSaida] = useState(false);
-  const [notificacoesAberto, setNotificacoesAberto] = useState(false);
   // Executa o logout após a confirmação
   const handleLogout = () => {
     setConfirmarSaida(false);
