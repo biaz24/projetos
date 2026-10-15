@@ -12,26 +12,6 @@ async function excluirArquivo(caminho) {
     return;
   }
 
-  const caminhoArquivo = path.resolve(pastaBackend, caminho);
-
-  try {
-    await fs.unlink(caminhoArquivo);
-    console.log(`Arquivo excluído: ${caminhoArquivo}`);
-  } catch (erro) {
-    if (erro.code === "ENOENT") {
-      console.warn(`Arquivo não encontrado: ${caminhoArquivo}`);
-      return;
-    }
-
-    throw erro;
-  }
-}
-
-async function excluirArquivo(caminho) {
-  if (!caminho) {
-    return;
-  }
-
   const pastaUploads = path.resolve(pastaBackend, "uploads");
   const caminhoArquivo = path.resolve(pastaBackend, caminho);
 
@@ -50,6 +30,20 @@ async function excluirArquivo(caminho) {
     }
 
     throw erro;
+  }
+}
+
+async function excluirArquivos(arquivos = []) {
+  if (!Array.isArray(arquivos) || arquivos.length === 0) {
+    return;
+  }
+
+  for (const anexo of arquivos) {
+    const caminho =
+      typeof anexo === "string" ? anexo : anexo?.CAMINHO || anexo?.caminho;
+    if (caminho) {
+      await excluirArquivo(caminho);
+    }
   }
 }
 
