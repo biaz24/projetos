@@ -58,6 +58,21 @@ async function listarDenuncias(req, res) {
   }
 }
 
+async function listarDenunciasPorIdeia(req, res) {
+  try {
+    const { ideiaId } = req.params;
+    const denuncias = await denunciaService.listarDenunciasPorIdeia(ideiaId);
+
+    return res.status(200).json(denuncias);
+  } catch (erro) {
+    console.error("Erro ao listar histórico de denúncias da ideia:", erro);
+
+    return res.status(500).json({
+      erro: "Erro ao buscar histórico de denúncias da ideia",
+    });
+  }
+}
+
 async function buscarDenunciaPorId(req, res) {
   try {
     const { id } = req.params;
@@ -256,6 +271,7 @@ export default {
   criarDenuncia,
   listarDenuncias,
   buscarDenunciaPorId,
+  listarDenunciasPorIdeia,
   atualizarStatus,
   buscarRascunho,
   salvarRascunho,

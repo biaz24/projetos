@@ -1,34 +1,82 @@
 import connection from "../database/connection.js";
 async function criarDenuncia(ideiaId, usuarioId, motivo, descricao) {
-  const [resultado] = await connection.query(
-    `INSERT INTO DENUNCIAS
-      (IDEIAS_ID, TITULO_IDEIA, USUARIOS_ID, MOTIVO, DESCRICAO)
-     SELECT ID, TITULO, ?, ?, ?
-     FROM IDEIAS
-     WHERE ID = ?`,
-    [usuarioId, motivo, descricao, ideiaId],
+  // Busca dados completos da ideia e do autor para snapshot definitivo
+  const [ideias] = await connection.query(
+    `SELECT i.ID, i.TITULO, i.DESCRICAO, i.CATEGORIA, i.USUARIOS_ID, u.NOME AS AUTOR_NOME
+     FROM IDEIAS i
+     LEFT JOIN USUARIOS u ON i.USUARIOS_ID = u.ID
+     WHERE i.ID = ?`,
+    [ideiaId],
   );
 
-  return resultado;
+  if (ideias.length === 0) {
+    throw new Error("Ideia não encontrada para denúncia.");
+  }
+
+  const ideia = ideias[0];
+
+  try {
+    const [resultado] = await connection.query(
+      `INSERT INTO DENUNCIAS
+        (IDEIAS_ID, IDEIA_ID_ORIGINAL, TITULO_IDEIA, DESCRICAO_IDEIA, CATEGORIA_IDEIA, AUTOR_IDEIA_ID, AUTOR_IDEIA_NOME, USUARIOS_ID, MOTIVO, DESCRICAO)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        ideia.ID,
+        ideia.ID,
+        ideia.TITULO,
+        ideia.DESCRICAO,
+        ideia.CATEGORIA || "Geral",
+        ideia.USUARIOS_ID,
+        ideia.AUTOR_NOME || "Anônimo",
+        usuarioId,
+        motivo,
+        descricao || null,
+      ],
+    );
+    return resultado;
+  } catch (err) {
+    // Fallback caso as novas colunas de histórico ainda não tenham sido migradas
+    const [resultado] = await connection.query(
+      `INSERT INTO DENUNCIAS
+        (IDEIAS_ID, TITULO_IDEIA, USUARIOS_ID, MOTIVO, DESCRICAO)
+       SELECT ID, TITULO, ?, ?, ?
+       FROM IDEIAS
+       WHERE ID = ?`,
+      [usuarioId, motivo, descricao || null, ideiaId],
+    );
+    return resultado;
+  }
 }
+
 async function listarDenuncias() {
   const [denuncias] = await connection.query(
     `SELECT
       d.ID,
       d.IDEIAS_ID,
+      COALESCE(d.IDEIA_ID_ORIGINAL, d.IDEIAS_ID) AS IDEIA_ID_ORIGINAL,
       d.USUARIOS_ID,
       d.MOTIVO,
       d.DESCRICAO,
       d.STATUS,
+      d.RESULTADO,
+      d.MEDIDA_APLICADA,
+      d.JUSTIFICATIVA,
+      d.ADMIN_ID,
       d.CREATED_AT,
       d.RESOLVIDA_AT,
-      COALESCE(d.TITULO_IDEIA, i.TITULO) AS IDEIA_TITULO,
+      COALESCE(i.TITULO, d.TITULO_IDEIA, 'Ideia sem título') AS IDEIA_TITULO,
+      COALESCE(i.DESCRICAO, d.DESCRICAO_IDEIA, '') AS IDEIA_DESCRICAO,
+      COALESCE(i.CATEGORIA, d.CATEGORIA_IDEIA, 'Geral') AS CATEGORIA_IDEIA,
+      COALESCE(autor.NOME, d.AUTOR_IDEIA_NOME, 'Não informado') AS AUTOR_NOME,
+      COALESCE(i.USUARIOS_ID, d.AUTOR_IDEIA_ID) AS AUTOR_ID,
       u.NOME AS USUARIO_NOME,
-      autor.NOME AS AUTOR_NOME
+      admin.NOME AS ADMIN_NOME,
+      CASE WHEN i.ID IS NULL THEN TRUE ELSE FALSE END AS IDEIA_EXCLUIDA
      FROM DENUNCIAS d
      LEFT JOIN IDEIAS i ON d.IDEIAS_ID = i.ID
      INNER JOIN USUARIOS u ON d.USUARIOS_ID = u.ID
      LEFT JOIN USUARIOS autor ON i.USUARIOS_ID = autor.ID
+     LEFT JOIN USUARIOS admin ON d.ADMIN_ID = admin.ID
      ORDER BY d.CREATED_AT DESC`,
   );
 
@@ -40,24 +88,72 @@ async function buscarDenunciaPorId(id) {
     `SELECT
       d.ID,
       d.IDEIAS_ID,
+      COALESCE(d.IDEIA_ID_ORIGINAL, d.IDEIAS_ID) AS IDEIA_ID_ORIGINAL,
       d.USUARIOS_ID,
       d.MOTIVO,
       d.DESCRICAO,
       d.STATUS,
+      d.RESULTADO,
+      d.MEDIDA_APLICADA,
+      d.JUSTIFICATIVA,
+      d.ADMIN_ID,
       d.CREATED_AT,
       d.RESOLVIDA_AT,
-      COALESCE(d.TITULO_IDEIA, i.TITULO) AS IDEIA_TITULO,
+      COALESCE(i.TITULO, d.TITULO_IDEIA, 'Ideia sem título') AS IDEIA_TITULO,
+      COALESCE(i.DESCRICAO, d.DESCRICAO_IDEIA, '') AS IDEIA_DESCRICAO,
+      COALESCE(i.CATEGORIA, d.CATEGORIA_IDEIA, 'Geral') AS CATEGORIA_IDEIA,
+      COALESCE(autor.NOME, d.AUTOR_IDEIA_NOME, 'Não informado') AS AUTOR_NOME,
+      COALESCE(i.USUARIOS_ID, d.AUTOR_IDEIA_ID) AS AUTOR_ID,
       u.NOME AS USUARIO_NOME,
-      autor.NOME AS AUTOR_NOME
+      admin.NOME AS ADMIN_NOME,
+      CASE WHEN i.ID IS NULL THEN TRUE ELSE FALSE END AS IDEIA_EXCLUIDA
      FROM DENUNCIAS d
      LEFT JOIN IDEIAS i ON d.IDEIAS_ID = i.ID
      INNER JOIN USUARIOS u ON d.USUARIOS_ID = u.ID
      LEFT JOIN USUARIOS autor ON i.USUARIOS_ID = autor.ID
+     LEFT JOIN USUARIOS admin ON d.ADMIN_ID = admin.ID
      WHERE d.ID = ?`,
     [id],
   );
 
   return denuncias[0] || null;
+}
+
+async function listarDenunciasPorIdeia(ideiaId) {
+  const [denuncias] = await connection.query(
+    `SELECT
+      d.ID,
+      d.IDEIAS_ID,
+      COALESCE(d.IDEIA_ID_ORIGINAL, d.IDEIAS_ID) AS IDEIA_ID_ORIGINAL,
+      d.USUARIOS_ID,
+      d.MOTIVO,
+      d.DESCRICAO,
+      d.STATUS,
+      d.RESULTADO,
+      d.MEDIDA_APLICADA,
+      d.JUSTIFICATIVA,
+      d.ADMIN_ID,
+      d.CREATED_AT,
+      d.RESOLVIDA_AT,
+      COALESCE(i.TITULO, d.TITULO_IDEIA, 'Ideia sem título') AS IDEIA_TITULO,
+      COALESCE(i.DESCRICAO, d.DESCRICAO_IDEIA, '') AS IDEIA_DESCRICAO,
+      COALESCE(i.CATEGORIA, d.CATEGORIA_IDEIA, 'Geral') AS CATEGORIA_IDEIA,
+      COALESCE(autor.NOME, d.AUTOR_IDEIA_NOME, 'Não informado') AS AUTOR_NOME,
+      COALESCE(i.USUARIOS_ID, d.AUTOR_IDEIA_ID) AS AUTOR_ID,
+      u.NOME AS USUARIO_NOME,
+      admin.NOME AS ADMIN_NOME,
+      CASE WHEN i.ID IS NULL THEN TRUE ELSE FALSE END AS IDEIA_EXCLUIDA
+     FROM DENUNCIAS d
+     LEFT JOIN IDEIAS i ON d.IDEIAS_ID = i.ID
+     INNER JOIN USUARIOS u ON d.USUARIOS_ID = u.ID
+     LEFT JOIN USUARIOS autor ON i.USUARIOS_ID = autor.ID
+     LEFT JOIN USUARIOS admin ON d.ADMIN_ID = admin.ID
+     WHERE d.IDEIAS_ID = ? OR d.IDEIA_ID_ORIGINAL = ?
+     ORDER BY d.CREATED_AT DESC`,
+    [ideiaId, ideiaId],
+  );
+
+  return denuncias;
 }
 
 async function atualizarStatus(id, status) {
@@ -165,19 +261,17 @@ async function concluirAnalise(
     }
     if (
       !denuncia.IDEIAS_ID &&
-      (medidaAplicada === "Ocultar ideia" ||
-        medidaAplicada === "Excluir ideia" ||
-        medidaAplicada === "Aviso")
+      (medidaAplicada === "Ocultar ideia" || medidaAplicada === "Excluir ideia")
     ) {
       throw new Error(
-        "Não é possível aplicar essa medida porque a ideia não existe mais.",
+        "Não é possível aplicar essa medida porque a ideia já foi excluída do sistema.",
       );
     }
 
     // Guarda os arquivos antes de excluir a ideia
     let anexos = [];
 
-    if (medidaAplicada === "Excluir ideia") {
+    if (medidaAplicada === "Excluir ideia" && denuncia.IDEIAS_ID) {
       const [arquivos] = await db.query(
         `SELECT
            ID,
@@ -204,7 +298,7 @@ async function concluirAnalise(
     );
 
     // Apenas oculta a ideia
-    if (medidaAplicada === "Ocultar ideia") {
+    if (medidaAplicada === "Ocultar ideia" && denuncia.IDEIAS_ID) {
       await db.query(
         `UPDATE IDEIAS
          SET VISIBILIDADE = 'Oculta'
@@ -214,7 +308,7 @@ async function concluirAnalise(
     }
 
     // Envia uma advertência para o AUTOR da ideia
-    if (medidaAplicada === "Aviso") {
+    if (medidaAplicada === "Aviso" && denuncia.AUTOR_ID) {
       await db.query(
         `INSERT INTO ADVERTENCIAS
           (USUARIOS_ID, DENUNCIA_ID, ADMIN_ID, MOTIVO)
@@ -223,9 +317,68 @@ async function concluirAnalise(
       );
     }
 
-    // Exclui a ideia
-    // As tabelas relacionadas serão excluídas pelo ON DELETE CASCADE
-    if (medidaAplicada === "Excluir ideia") {
+    // Exclui a ideia preservando as denúncias
+    if (medidaAplicada === "Excluir ideia" && denuncia.IDEIAS_ID) {
+      // 1. Preservar snapshot da ideia em todas as denúncias associadas
+      const [ideias] = await db.query(
+        `SELECT i.ID, i.TITULO, i.DESCRICAO, i.CATEGORIA, i.USUARIOS_ID, u.NOME AS AUTOR_NOME
+         FROM IDEIAS i
+         LEFT JOIN USUARIOS u ON i.USUARIOS_ID = u.ID
+         WHERE i.ID = ?`,
+        [denuncia.IDEIAS_ID],
+      );
+
+      if (ideias.length > 0) {
+        const ideia = ideias[0];
+        try {
+          await db.query(
+            `UPDATE DENUNCIAS
+             SET IDEIA_ID_ORIGINAL = COALESCE(IDEIA_ID_ORIGINAL, ?),
+                 TITULO_IDEIA = COALESCE(TITULO_IDEIA, ?),
+                 DESCRICAO_IDEIA = COALESCE(DESCRICAO_IDEIA, ?),
+                 CATEGORIA_IDEIA = COALESCE(CATEGORIA_IDEIA, ?),
+                 AUTOR_IDEIA_ID = COALESCE(AUTOR_IDEIA_ID, ?),
+                 AUTOR_IDEIA_NOME = COALESCE(AUTOR_IDEIA_NOME, ?),
+                 IDEIAS_ID = NULL
+             WHERE IDEIAS_ID = ?`,
+            [
+              ideia.ID,
+              ideia.TITULO,
+              ideia.DESCRICAO,
+              ideia.CATEGORIA || "Geral",
+              ideia.USUARIOS_ID,
+              ideia.AUTOR_NOME || "Não informado",
+              denuncia.IDEIAS_ID,
+            ],
+          );
+        } catch (err) {
+          try {
+            await db.query(
+              `UPDATE DENUNCIAS SET IDEIAS_ID = NULL WHERE IDEIAS_ID = ?`,
+              [denuncia.IDEIAS_ID],
+            );
+          } catch (ignore) {}
+        }
+      }
+
+      // 2. Limpar dados dependentes
+      try {
+        await db.query("DELETE FROM CURTIDAS WHERE IDEIAS_ID = ?", [denuncia.IDEIAS_ID]);
+      } catch (ignore) {}
+      try {
+        await db.query("DELETE FROM FAVORITOS WHERE IDEIAS_ID = ?", [denuncia.IDEIAS_ID]);
+      } catch (ignore) {}
+      try {
+        await db.query("DELETE FROM VISUALIZACOES WHERE IDEIAS_ID = ?", [denuncia.IDEIAS_ID]);
+      } catch (ignore) {}
+      try {
+        await db.query("DELETE FROM COMENTARIOS WHERE IDEIAS_ID = ?", [denuncia.IDEIAS_ID]);
+      } catch (ignore) {}
+      try {
+        await db.query("DELETE FROM ANEXOS WHERE IDEIAS_ID = ?", [denuncia.IDEIAS_ID]);
+      } catch (ignore) {}
+
+      // 3. Excluir a ideia da tabela principal
       const [resultadoExclusao] = await db.query(
         `DELETE FROM IDEIAS
      WHERE ID = ?`,
@@ -258,6 +411,7 @@ export default {
   criarDenuncia,
   listarDenuncias,
   buscarDenunciaPorId,
+  listarDenunciasPorIdeia,
   atualizarStatus,
   buscarAutorDaIdeia,
   buscarRascunho,

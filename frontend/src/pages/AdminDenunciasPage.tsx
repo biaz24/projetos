@@ -5,7 +5,8 @@ import { useToast } from "../context/ToastContext";
 
 interface Denuncia {
   ID: number;
-  IDEIAS_ID: number;
+  IDEIAS_ID: number | null;
+  IDEIA_ID_ORIGINAL?: number | null;
   USUARIOS_ID: number;
   MOTIVO: string;
   DESCRICAO: string | null;
@@ -13,8 +14,11 @@ interface Denuncia {
   CREATED_AT: string;
   RESOLVIDA_AT: string | null;
   IDEIA_TITULO: string;
+  IDEIA_DESCRICAO?: string;
+  CATEGORIA_IDEIA?: string;
   USUARIO_NOME: string;
   AUTOR_NOME: string;
+  IDEIA_EXCLUIDA?: boolean;
 }
 interface IdeiaDetalhada {
   ID: number;
@@ -119,12 +123,40 @@ export default function AdminDenunciasPage() {
         JUSTIFICATIVA: "",
       });
 
-      // Busca os detalhes completos da ideia denunciada
-      const ideia = await fetchApi<IdeiaDetalhada>(
-        `/admin/ideias/${denuncia.IDEIAS_ID}`,
-      );
-
-      setIdeiaDetalhada(ideia);
+      // Busca os detalhes da ideia denunciada (se ela ainda existir)
+      if (denuncia.IDEIAS_ID && !denuncia.IDEIA_EXCLUIDA) {
+        try {
+          const ideia = await fetchApi<IdeiaDetalhada>(
+            `/admin/ideias/${denuncia.IDEIAS_ID}`,
+          );
+          setIdeiaDetalhada(ideia);
+        } catch {
+          setIdeiaDetalhada({
+            ID: denuncia.IDEIA_ID_ORIGINAL || denuncia.IDEIAS_ID || 0,
+            USUARIOS_ID: 0,
+            TITULO: denuncia.IDEIA_TITULO || "Ideia excluída",
+            DESCRICAO:
+              denuncia.IDEIA_DESCRICAO ||
+              "(Esta ideia foi removida, mas seu histórico de denúncia foi mantido)",
+            CATEGORIA: denuncia.CATEGORIA_IDEIA || "Geral",
+            STATUS: "Excluída",
+            NOME_AUTOR: denuncia.AUTOR_NOME || "Não informado",
+          });
+        }
+      } else {
+        // Ideia já excluída: recupera os dados salvos no snapshot da denúncia
+        setIdeiaDetalhada({
+          ID: denuncia.IDEIA_ID_ORIGINAL || denuncia.IDEIAS_ID || 0,
+          USUARIOS_ID: 0,
+          TITULO: denuncia.IDEIA_TITULO || "Ideia excluída",
+          DESCRICAO:
+            denuncia.IDEIA_DESCRICAO ||
+            "(Esta ideia foi removida, mas seu histórico de denúncia foi mantido)",
+          CATEGORIA: denuncia.CATEGORIA_IDEIA || "Geral",
+          STATUS: "Excluída",
+          NOME_AUTOR: denuncia.AUTOR_NOME || "Não informado",
+        });
+      }
 
       // Busca o rascunho salvo para esta denúncia
       const resposta = await fetchApi<RascunhoDenuncia | null>(
@@ -339,9 +371,26 @@ export default function AdminDenunciasPage() {
                         margin: 0,
                         color: "#1e293b",
                         fontSize: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
                       }}
                     >
                       {denuncia.IDEIA_TITULO}
+                      {(denuncia.IDEIA_EXCLUIDA || !denuncia.IDEIAS_ID) && (
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            backgroundColor: "#fee2e2",
+                            color: "#b91c1c",
+                            padding: "2px 8px",
+                            borderRadius: "12px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          Ideia excluída
+                        </span>
+                      )}
                     </h3>
 
                     <p
@@ -590,6 +639,25 @@ export default function AdminDenunciasPage() {
 
                   {ideiaDetalhada ? (
                     <>
+                      {ideiaDetalhada.STATUS === "Excluída" && (
+                        <div
+                          style={{
+                            marginBottom: "12px",
+                            padding: "8px 12px",
+                            background: "#fee2e2",
+                            color: "#991b1b",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <i className="fa-solid fa-triangle-exclamation"></i>
+                          Esta ideia foi excluída do sistema, mas seu histórico de denúncia foi preservado.
+                        </div>
+                      )}
                       <p>
                         <strong>Título:</strong> {ideiaDetalhada.TITULO}
                       </p>

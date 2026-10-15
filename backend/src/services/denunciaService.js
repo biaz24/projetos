@@ -18,6 +18,10 @@ async function buscarDenunciaPorId(id) {
   return await denunciaModel.buscarDenunciaPorId(id);
 }
 
+async function listarDenunciasPorIdeia(ideiaId) {
+  return await denunciaModel.listarDenunciasPorIdeia(ideiaId);
+}
+
 async function atualizarStatus(id, status) {
   return await denunciaModel.atualizarStatus(id, status);
 }
@@ -78,6 +82,7 @@ export default {
   criarDenuncia,
   listarDenuncias,
   buscarDenunciaPorId,
+  listarDenunciasPorIdeia,
   atualizarStatus,
   buscarAutorDaIdeia,
   salvarRascunho,

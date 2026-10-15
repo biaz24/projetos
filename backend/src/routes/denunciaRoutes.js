@@ -24,6 +24,14 @@ router.get(
   denunciaController.buscarDenunciaPorId,
 );
 
+// Apenas administrador pode consultar o histórico de denúncias de uma ideia (mesmo se excluída)
+router.get(
+  "/ideias/:ideiaId/denuncias",
+  autenticarToken,
+  verificarAdmin,
+  denunciaController.listarDenunciasPorIdeia,
+);
+
 // Apenas administrador pode alterar o status
 router.patch(
   "/denuncias/:id/status",

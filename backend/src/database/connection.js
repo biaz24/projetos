@@ -52,6 +52,16 @@ async function adicionarColunaSeNaoExistir(tabela, coluna, definicao) {
         CONSTRAINT fk_visualizacoes_ideia FOREIGN KEY (IDEIAS_ID) REFERENCES IDEIAS(ID) ON DELETE CASCADE
       )
     `);
+
+    // 5. Colunas de histórico e integridade em DENUNCIAS (preserva dados mesmo se a ideia for excluída)
+    await adicionarColunaSeNaoExistir("DENUNCIAS", "IDEIA_ID_ORIGINAL", "INT NULL");
+    await adicionarColunaSeNaoExistir("DENUNCIAS", "DESCRICAO_IDEIA", "TEXT NULL");
+    await adicionarColunaSeNaoExistir("DENUNCIAS", "CATEGORIA_IDEIA", "VARCHAR(50) NULL");
+    await adicionarColunaSeNaoExistir("DENUNCIAS", "AUTOR_IDEIA_ID", "INT NULL");
+    await adicionarColunaSeNaoExistir("DENUNCIAS", "AUTOR_IDEIA_NOME", "VARCHAR(100) NULL");
+
+    // 6. Coluna VISIBILIDADE em IDEIAS
+    await adicionarColunaSeNaoExistir("IDEIAS", "VISIBILIDADE", "VARCHAR(20) NOT NULL DEFAULT 'Publica'");
   } catch (err) {
     console.warn("Aviso de auto-migration:", err.message);
   }
