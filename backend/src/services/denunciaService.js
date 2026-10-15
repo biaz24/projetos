@@ -43,6 +43,7 @@ async function salvarRascunho(
 async function buscarRascunho(denunciaId, adminId) {
   return await denunciaModel.buscarRascunho(denunciaId, adminId);
 }
+
 async function concluirAnalise(
   denunciaId,
   adminId,
@@ -58,9 +59,16 @@ async function concluirAnalise(
     justificativa,
   );
 
-  // Os arquivos só são apagados depois que o banco confirmou o COMMIT.
+  // O banco já confirmou o COMMIT neste ponto.
   if (medidaAplicada === "Excluir ideia") {
-    await arquivoService.excluirArquivos(resultadoAnalise.anexos);
+    try {
+      await arquivoService.excluirArquivos(resultadoAnalise.anexos);
+    } catch (erro) {
+      console.error(
+        "A denúncia foi concluída, mas houve erro ao excluir arquivos físicos:",
+        erro,
+      );
+    }
   }
 
   return resultadoAnalise.resposta;

@@ -202,15 +202,14 @@ CREATE TABLE IF NOT EXISTS CURTIDAS (
     CONSTRAINT uq_curtida_usuario_ideia
         UNIQUE (IDEIAS_ID, USUARIOS_ID)
 );
-
 -- ============================================================
--- TABELA: DENUNCIA
+-- TABELA: DENUNCIAS
 -- ============================================================
-
 
 CREATE TABLE IF NOT EXISTS DENUNCIAS (
     ID INT AUTO_INCREMENT PRIMARY KEY,
-    IDEIAS_ID INT NOT NULL,
+    IDEIAS_ID INT NULL,
+    TITULO_IDEIA VARCHAR(255) NOT NULL,
     USUARIOS_ID INT NOT NULL,
 
     MOTIVO VARCHAR(100) NOT NULL,
@@ -228,7 +227,7 @@ CREATE TABLE IF NOT EXISTS DENUNCIAS (
     CONSTRAINT fk_denuncias_ideia
         FOREIGN KEY (IDEIAS_ID)
         REFERENCES IDEIAS(ID)
-        ON DELETE CASCADE,
+        ON DELETE SET NULL,
 
     CONSTRAINT fk_denuncias_usuario
         FOREIGN KEY (USUARIOS_ID)

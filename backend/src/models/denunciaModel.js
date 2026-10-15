@@ -1,16 +1,16 @@
 import connection from "../database/connection.js";
-
 async function criarDenuncia(ideiaId, usuarioId, motivo, descricao) {
   const [resultado] = await connection.query(
     `INSERT INTO DENUNCIAS
-      (IDEIAS_ID, USUARIOS_ID, MOTIVO, DESCRICAO)
-     VALUES (?, ?, ?, ?)`,
-    [ideiaId, usuarioId, motivo, descricao],
+      (IDEIAS_ID, TITULO_IDEIA, USUARIOS_ID, MOTIVO, DESCRICAO)
+     SELECT ID, TITULO, ?, ?, ?
+     FROM IDEIAS
+     WHERE ID = ?`,
+    [usuarioId, motivo, descricao, ideiaId],
   );
 
   return resultado;
 }
-
 async function listarDenuncias() {
   const [denuncias] = await connection.query(
     `SELECT
@@ -22,13 +22,13 @@ async function listarDenuncias() {
       d.STATUS,
       d.CREATED_AT,
       d.RESOLVIDA_AT,
-      i.TITULO AS IDEIA_TITULO,
+      COALESCE(d.TITULO_IDEIA, i.TITULO) AS IDEIA_TITULO,
       u.NOME AS USUARIO_NOME,
       autor.NOME AS AUTOR_NOME
      FROM DENUNCIAS d
-     INNER JOIN IDEIAS i ON d.IDEIAS_ID = i.ID
+     LEFT JOIN IDEIAS i ON d.IDEIAS_ID = i.ID
      INNER JOIN USUARIOS u ON d.USUARIOS_ID = u.ID
-     INNER JOIN USUARIOS autor ON i.USUARIOS_ID = autor.ID
+     LEFT JOIN USUARIOS autor ON i.USUARIOS_ID = autor.ID
      ORDER BY d.CREATED_AT DESC`,
   );
 
@@ -46,16 +46,18 @@ async function buscarDenunciaPorId(id) {
       d.STATUS,
       d.CREATED_AT,
       d.RESOLVIDA_AT,
-      i.TITULO AS IDEIA_TITULO,
-      u.NOME AS USUARIO_NOME
+      COALESCE(d.TITULO_IDEIA, i.TITULO) AS IDEIA_TITULO,
+      u.NOME AS USUARIO_NOME,
+      autor.NOME AS AUTOR_NOME
      FROM DENUNCIAS d
-     INNER JOIN IDEIAS i ON d.IDEIAS_ID = i.ID
+     LEFT JOIN IDEIAS i ON d.IDEIAS_ID = i.ID
      INNER JOIN USUARIOS u ON d.USUARIOS_ID = u.ID
+     LEFT JOIN USUARIOS autor ON i.USUARIOS_ID = autor.ID
      WHERE d.ID = ?`,
     [id],
   );
 
-  return denuncias[0];
+  return denuncias[0] || null;
 }
 
 async function atualizarStatus(id, status) {
@@ -137,17 +139,18 @@ async function concluirAnalise(
     transacaoIniciada = true;
 
     // Busca a denúncia, a ideia e o autor da ideia
+
     const [denuncias] = await db.query(
       `SELECT
-         d.ID,
-         d.IDEIAS_ID,
-         d.USUARIOS_ID,
-         d.STATUS,
-         i.USUARIOS_ID AS AUTOR_ID
-       FROM DENUNCIAS d
-       INNER JOIN IDEIAS i ON d.IDEIAS_ID = i.ID
-       WHERE d.ID = ?
-       FOR UPDATE`,
+     d.ID,
+     d.IDEIAS_ID,
+     d.USUARIOS_ID,
+     d.STATUS,
+     i.USUARIOS_ID AS AUTOR_ID
+   FROM DENUNCIAS d
+   LEFT JOIN IDEIAS i ON d.IDEIAS_ID = i.ID
+   WHERE d.ID = ?
+   FOR UPDATE`,
       [denunciaId],
     );
 
@@ -159,6 +162,16 @@ async function concluirAnalise(
 
     if (denuncia.STATUS === "Resolvida") {
       throw new Error("Esta denúncia já foi resolvida.");
+    }
+    if (
+      !denuncia.IDEIAS_ID &&
+      (medidaAplicada === "Ocultar ideia" ||
+        medidaAplicada === "Excluir ideia" ||
+        medidaAplicada === "Aviso")
+    ) {
+      throw new Error(
+        "Não é possível aplicar essa medida porque a ideia não existe mais.",
+      );
     }
 
     // Guarda os arquivos antes de excluir a ideia

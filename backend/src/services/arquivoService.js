@@ -27,9 +27,29 @@ async function excluirArquivo(caminho) {
   }
 }
 
-async function excluirArquivos(anexos) {
-  for (const anexo of anexos) {
-    await excluirArquivo(anexo.CAMINHO);
+async function excluirArquivo(caminho) {
+  if (!caminho) {
+    return;
+  }
+
+  const pastaUploads = path.resolve(pastaBackend, "uploads");
+  const caminhoArquivo = path.resolve(pastaBackend, caminho);
+
+  // Garante que o arquivo esteja dentro da pasta uploads.
+  if (!caminhoArquivo.startsWith(pastaUploads + path.sep)) {
+    throw new Error("Caminho de arquivo inválido para exclusão.");
+  }
+
+  try {
+    await fs.unlink(caminhoArquivo);
+    console.log(`Arquivo excluído: ${caminhoArquivo}`);
+  } catch (erro) {
+    if (erro.code === "ENOENT") {
+      console.warn(`Arquivo não encontrado: ${caminhoArquivo}`);
+      return;
+    }
+
+    throw erro;
   }
 }
 
