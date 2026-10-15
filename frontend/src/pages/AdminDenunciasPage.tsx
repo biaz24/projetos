@@ -113,7 +113,11 @@ export default function AdminDenunciasPage() {
     try {
       setCarregandoDetalhes(true);
       setStatusRascunho("");
-      setDenunciaSelecionada(denuncia);
+      const denunciaAtualizada = await fetchApi<Denuncia>(
+        `/denuncias/${denuncia.ID}`,
+      );
+
+      setDenunciaSelecionada(denunciaAtualizada);
       setRascunhoCarregadoId(null);
       setIdeiaDetalhada(null);
 
@@ -655,7 +659,8 @@ export default function AdminDenunciasPage() {
                           }}
                         >
                           <i className="fa-solid fa-triangle-exclamation"></i>
-                          Esta ideia foi excluída do sistema, mas seu histórico de denúncia foi preservado.
+                          Esta ideia foi excluída do sistema, mas seu histórico
+                          de denúncia foi preservado.
                         </div>
                       )}
                       <p>

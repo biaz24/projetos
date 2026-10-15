@@ -16,6 +16,11 @@ const env = {
     accessSecret: process.env.JWT_ACCESS_SECRET || "access_secret_dev",
     refreshSecret: process.env.JWT_REFRESH_SECRET || "refresh_secret_dev",
   },
+
+  email: {
+    user: process.env.EMAIL_USER,
+    password: process.env.EMAIL_PASSWORD,
+  },
 };
 
 export default env;

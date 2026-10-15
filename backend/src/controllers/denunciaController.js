@@ -85,6 +85,11 @@ async function buscarDenunciaPorId(req, res) {
       });
     }
 
+    if (denuncia.STATUS === "Pendente") {
+      await denunciaService.atualizarStatus(id, "Em análise");
+      denuncia.STATUS = "Em análise";
+    }
+
     return res.status(200).json(denuncia);
   } catch (erro) {
     console.error("Erro ao buscar denúncia:", erro);
