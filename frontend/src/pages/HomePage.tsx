@@ -174,7 +174,7 @@ export const HomePage: React.FC = () => {
   return (
     <AppLayout>
       {/* Camada de carregamento com símbolo giratório */}
-      <div className="loading-overlay" aria-label="carregando">
+      <div className="loading-overlay" aria-label="Carregando">
         <div className="loading-spinner"></div>
       </div>
 
@@ -489,6 +489,7 @@ export const HomePage: React.FC = () => {
               maxWidth: "540px",
               width: "100%",
               boxShadow: "0 10px 30px rgba(0, 0, 0, 0.2)",
+              position: "relative",
             }}
           >
             <div
@@ -503,13 +504,23 @@ export const HomePage: React.FC = () => {
                 Publicar Nova Ideia
               </h3>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
+                aria-label="Fechar modal"
                 style={{
+                  position: "absolute",
+                  top: "20px",
+                  right: "20px",
                   background: "none",
                   border: "none",
-                  fontSize: "18px",
+                  fontSize: "22px",
                   cursor: "pointer",
                   color: "#64748b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "32px",
+                  height: "32px",
                 }}
               >
                 <i className="fa-solid fa-xmark"></i>
@@ -834,11 +845,13 @@ export const HomePage: React.FC = () => {
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     gap: "6px",
+                    width: "100%",
                   }}
                 >
                   <i className="fa-solid fa-paper-plane"></i>
-                  {submitting ? "Publicando..." : "Publicar Ideia"}
+                  {submitting ? "Publicando..." : "Publicar ideia"}
                 </button>
               </div>
             </form>
