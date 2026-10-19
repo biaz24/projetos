@@ -44,6 +44,16 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+
+      "/esqueci-senha": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+
+      "/redefinir-senha": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
     },
   },
 });

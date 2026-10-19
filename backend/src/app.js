@@ -13,6 +13,7 @@ import curtidaRoutes from "./routes/curtidaRoutes.js";
 import anexoRoutes from "./routes/anexoRoutes.js";
 import denunciaRoutes from "./routes/denunciaRoutes.js";
 import notificacaoRoutes from "./routes/notificacaoRoutes.js";
+import recuperacaoSenhaRoutes from "./routes/recuperacaoSenhaRoutes.js";
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use(curtidaRoutes);
 app.use(anexoRoutes);
 app.use(denunciaRoutes);
 app.use(notificacaoRoutes);
+app.use(recuperacaoSenhaRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ erro: "Rota não encontrada" });

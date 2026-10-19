@@ -12,6 +12,7 @@ import { PerfilPage } from "./pages/PerfilPage";
 import { RascunhosPage } from "./pages/RascunhosPage";
 import { IdeiaDetalhesPage } from "./pages/IdeiaDetalhesPage";
 import AdminDenunciasPage from "./pages/AdminDenunciasPage";
+import { RedefinirSenhaPage } from "./pages/RedefinirSenhaPage";
 
 export const App: React.FC = () => {
   return (
@@ -44,6 +45,7 @@ export const App: React.FC = () => {
                 </PublicOnlyRoute>
               }
             />
+            <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
 
             {/* Rotas Protegidas */}
             <Route
