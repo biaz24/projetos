@@ -62,6 +62,39 @@ async function adicionarColunaSeNaoExistir(tabela, coluna, definicao) {
 
     // 6. Coluna VISIBILIDADE em IDEIAS
     await adicionarColunaSeNaoExistir("IDEIAS", "VISIBILIDADE", "VARCHAR(20) NOT NULL DEFAULT 'Publica'");
+
+    // 7. Tabela RECUPERACAO_SENHA
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS RECUPERACAO_SENHA (
+        ID INT AUTO_INCREMENT PRIMARY KEY,
+        USUARIOS_ID INT NOT NULL,
+        TOKEN_HASH VARCHAR(64) NOT NULL UNIQUE,
+        EXPIRA_AT DATETIME NOT NULL,
+        USADO BOOLEAN NOT NULL DEFAULT FALSE,
+        CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT FK_RECUPERACAO_USUARIO FOREIGN KEY (USUARIOS_ID) REFERENCES USUARIOS(ID) ON DELETE CASCADE
+      )
+    `);
+
+    // 8. Tabela REFRESH_TOKENS
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS REFRESH_TOKENS (
+        ID INT AUTO_INCREMENT PRIMARY KEY,
+        USUARIOS_ID INT NOT NULL,
+        TOKEN VARCHAR(255) NOT NULL UNIQUE,
+        EXPIRES_AT DATETIME NOT NULL,
+        CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        REVOKED_AT DATETIME NULL,
+        CONSTRAINT fk_refresh_usuario FOREIGN KEY (USUARIOS_ID) REFERENCES USUARIOS(ID) ON DELETE CASCADE
+      )
+    `);
+
+    // 9. Garantir que a coluna SENHA em USUARIOS suporta hash bcrypt (VARCHAR 255)
+    try {
+      await connection.query("ALTER TABLE USUARIOS MODIFY COLUMN SENHA VARCHAR(255) NOT NULL");
+    } catch (_) {
+      // Ignora se tabela não existir ainda ou não puder ser modificada
+    }
   } catch (err) {
     console.warn("Aviso de auto-migration:", err.message);
   }

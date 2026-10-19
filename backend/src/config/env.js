@@ -21,6 +21,9 @@ const env = {
     user: process.env.EMAIL_USER,
     password: process.env.EMAIL_PASSWORD,
   },
+
+  frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
+  isProduction: process.env.NODE_ENV === "production",
 };
 
 export default env;

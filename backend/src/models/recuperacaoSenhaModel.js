@@ -104,6 +104,12 @@ async function consumirTokenEAtualizarSenha(tokenHash, senhaHash) {
       throw new Error("Token já utilizado.");
     }
 
+    // Revoga todas as sessões ativas do usuário por segurança
+    await conn.query(
+      `DELETE FROM REFRESH_TOKENS WHERE USUARIOS_ID = ?`,
+      [registro.USUARIOS_ID],
+    );
+
     await conn.commit();
 
     return { mensagem: "Senha redefinida com sucesso." };

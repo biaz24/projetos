@@ -439,3 +439,113 @@ button:hover {
         font-size: 16px;
     }
 }
+
+/* =========================
+   ELEMENTOS ADICIONAIS DE RECUPERAÇÃO E REDEFINIÇÃO
+========================= */
+
+.input-box .toggle-senha {
+    cursor: pointer;
+    margin-right: 0;
+    margin-left: 8px;
+    color: #64748b;
+    transition: color 0.2s;
+}
+
+.input-box .toggle-senha:hover {
+    color: #1e3a8a;
+}
+
+.requisitos-senha {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+}
+
+.requisitos-senha p {
+    margin: 0 0 6px 0;
+    text-align: left;
+    font-weight: 600;
+    color: #475569;
+    font-size: 13px;
+}
+
+.requisito-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.requisito-item.atendido {
+    color: #16a34a;
+}
+
+.requisito-item.nao-atendido {
+    color: #94a3b8;
+}
+
+.requisito-item i {
+    font-size: 12px;
+}
+
+.card-feedback {
+    text-align: center;
+    padding: 15px 0;
+}
+
+.card-feedback i.feedback-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    display: inline-block;
+}
+
+.card-feedback.sucesso i.feedback-icon {
+    color: #16a34a;
+}
+
+.card-feedback.erro i.feedback-icon {
+    color: #dc2626;
+}
+
+.card-feedback h3 {
+    color: #1e3a8a;
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+
+.card-feedback p {
+    color: #475569;
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 25px;
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: #1e3a8a;
+    border: 1px solid #cbd5e1;
+    margin-top: 10px;
+}
+
+.btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+.alert-box {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}

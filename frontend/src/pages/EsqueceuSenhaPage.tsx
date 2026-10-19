@@ -6,7 +6,6 @@ import { fetchApi } from "../services/api";
 export const EsqueceuSenhaPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
-
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -17,7 +16,7 @@ export const EsqueceuSenhaPage: React.FC = () => {
     setErro("");
 
     try {
-      await fetchApi("/esqueci-senha", {
+      await fetchApi<{ mensagem: string }>("/esqueci-senha", {
         method: "POST",
         body: JSON.stringify({ email }),
       });
@@ -34,10 +33,15 @@ export const EsqueceuSenhaPage: React.FC = () => {
     }
   };
 
+  const handleTentarNovamente = () => {
+    setSubmitted(false);
+    setErro("");
+  };
+
   return (
     <div className="auth-page-wrapper">
       <div className="container">
-        {/* Lado esquerdo */}
+        {/* Painel Esquerdo */}
         <div className="left">
           <div className="logo">
             <span>Ideia Futura</span>
@@ -55,61 +59,64 @@ export const EsqueceuSenhaPage: React.FC = () => {
 
           <img
             src="/img/imagem1.png"
-            alt="Imagem do sistema"
+            alt="Ilustração de recuperação"
             className="imagem-recuperacao"
           />
         </div>
 
-        {/* Lado direito */}
+        {/* Painel Direito */}
         <div className="right">
           <div className="card">
-            <h2>Recuperar senha</h2>
-
-            <p>Digite seu e-mail para receber as instruções de recuperação.</p>
-
             {!submitted ? (
-              <form onSubmit={handleSubmit}>
-                <label>
-                  <b>E-mail</b>
-                </label>
+              <>
+                <h2>Recuperar senha</h2>
+                <p>Digite seu e-mail cadastrado para receber as instruções de recuperação.</p>
 
-                <div className="input-box">
-                  <i className="fa-regular fa-envelope"></i>
-                  <input
-                    type="email"
-                    placeholder="Digite seu e-mail"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
+                {erro && (
+                  <div className="alert-box" role="alert">
+                    <i className="fa-solid fa-circle-exclamation"></i>
+                    <span>{erro}</span>
+                  </div>
+                )}
 
-                <button type="submit" disabled={loading}>
-                  {loading ? "Enviando..." : "Enviar instruções"}
-                </button>
-              </form>
+                <form onSubmit={handleSubmit}>
+                  <label htmlFor="emailInput">
+                    <b>E-mail</b>
+                  </label>
+
+                  <div className="input-box">
+                    <i className="fa-regular fa-envelope"></i>
+                    <input
+                      id="emailInput"
+                      type="email"
+                      placeholder="exemplo@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <button type="submit" disabled={loading}>
+                    {loading ? "Enviando instruções..." : "Enviar instruções"}
+                  </button>
+                </form>
+              </>
             ) : (
-              <div
-                style={{
-                  textAlign: "center",
-                  color: "#16a34a",
-                  padding: "15px 0",
-                }}
-              >
-                <i
-                  className="fa-solid fa-circle-check"
-                  style={{ fontSize: "2.5rem", marginBottom: "10px" }}
-                ></i>
-                <p style={{ margin: 0, fontWeight: "bold" }}>
-                  Se o e-mail estiver cadastrado, você receberá as instruções
-                  para redefinir sua senha.
+              <div className="card-feedback sucesso">
+                <i className="fa-solid fa-circle-check feedback-icon"></i>
+                <h3>E-mail enviado!</h3>
+                <p>
+                  Se o endereço <strong>{email}</strong> estiver cadastrado em nossa plataforma,
+                  você receberá um link em alguns instantes para definir uma nova senha.
                 </p>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleTentarNovamente}
+                >
+                  Tentar outro e-mail
+                </button>
               </div>
-            )}
-            {erro && (
-              <p role="alert" style={{ color: "#dc2626" }}>
-                {erro}
-              </p>
             )}
 
             <div className="register">

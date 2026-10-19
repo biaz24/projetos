@@ -1,10 +1,24 @@
 import { Router } from "express";
 import recuperacaoSenhaController from "../controllers/recuperacaoSenhaController.js";
+import { recuperacaoSenhaLimiter } from "../middlewares/rateLimiter.js";
 
 const router = Router();
 
-router.post("/esqueci-senha", recuperacaoSenhaController.solicitarRecuperacao);
+router.post(
+  "/esqueci-senha",
+  recuperacaoSenhaLimiter,
+  recuperacaoSenhaController.solicitarRecuperacao,
+);
 
-router.post("/redefinir-senha", recuperacaoSenhaController.redefinirSenha);
+router.get(
+  "/redefinir-senha/validar",
+  recuperacaoSenhaController.validarToken,
+);
+
+router.post(
+  "/redefinir-senha",
+  recuperacaoSenhaLimiter,
+  recuperacaoSenhaController.redefinirSenha,
+);
 
 export default router;

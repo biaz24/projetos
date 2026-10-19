@@ -21,3 +21,15 @@ export const cadastroLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Rate limiter para recuperação de senha: máximo 5 solicitações a cada 15 minutos por IP
+export const recuperacaoSenhaLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: {
+    erro: "Muitas solicitações de recuperação de senha. Por favor, tente novamente em 15 minutos.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+

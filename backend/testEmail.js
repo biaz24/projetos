@@ -1,18 +1,17 @@
 import emailService from "./src/services/emailService.js";
-
 import env from "./src/config/env.js";
 
 console.log("EMAIL_USER configurado:", Boolean(env.email.user));
 console.log("EMAIL_PASSWORD configurada:", Boolean(env.email.password));
 
 try {
-  await emailService.enviarEmail(
-    "bea.bonfimmachado@gmail.com",
-    "Teste de envio de e-mail",
-    "Se você recebeu esta mensagem, o envio de e-mails está funcionando!",
+  await emailService.enviarEmailRecuperacaoSenha(
+    "teste@exemplo.com",
+    "Usuário Teste",
+    "http://localhost:5173/redefinir-senha?token=exemplo123456",
   );
 
-  console.log("E-mail enviado com sucesso!");
+  console.log("Teste de e-mail concluído com sucesso!");
 } catch (erro) {
-  console.error("Erro ao enviar e-mail:", erro.message);
+  console.error("Erro no teste de e-mail:", erro.message);
 }

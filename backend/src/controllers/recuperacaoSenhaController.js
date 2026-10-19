@@ -25,6 +25,40 @@ async function solicitarRecuperacao(req, res) {
   }
 }
 
+async function validarToken(req, res) {
+  try {
+    const token = req.query.token;
+
+    if (typeof token !== "string" || !token.trim()) {
+      return res.status(400).json({
+        valido: false,
+        erro: "Token não informado.",
+      });
+    }
+
+    const ehValido = await recuperacaoSenhaService.validarToken(token);
+
+    if (!ehValido) {
+      return res.status(400).json({
+        valido: false,
+        erro: "O link de recuperação é inválido ou expirou.",
+      });
+    }
+
+    return res.status(200).json({
+      valido: true,
+      mensagem: "Token válido.",
+    });
+  } catch (erro) {
+    console.error("Erro ao validar token:", erro);
+
+    return res.status(500).json({
+      valido: false,
+      erro: "Erro interno ao validar o link de recuperação.",
+    });
+  }
+}
+
 async function redefinirSenha(req, res) {
   try {
     const { token, novaSenha } = req.body;
@@ -64,5 +98,6 @@ async function redefinirSenha(req, res) {
 
 export default {
   solicitarRecuperacao,
+  validarToken,
   redefinirSenha,
 };
