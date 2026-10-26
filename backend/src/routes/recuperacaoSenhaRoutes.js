@@ -10,10 +10,7 @@ router.post(
   recuperacaoSenhaController.solicitarRecuperacao,
 );
 
-router.get(
-  "/redefinir-senha/validar",
-  recuperacaoSenhaController.validarToken,
-);
+router.get("/redefinir-senha/validar", recuperacaoSenhaController.validarToken);
 
 router.post(
   "/redefinir-senha",

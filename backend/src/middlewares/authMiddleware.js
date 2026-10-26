@@ -1,13 +1,19 @@
 import { verifyAccessToken } from "../config/token.js";
 
 function autenticarToken(req, res, next) {
-  // primeiro tenta pegar o token do cookie (é o caminho principal agora)
+  // Caminho principal: cookie httpOnly
   let token = req.cookies?.accessToken;
 
-  // se não veio por cookie, aceita também via header Authorization (útil pra testar no Postman/Insomnia)
-  if (!token && req.headers.authorization) {
-    const partes = req.headers.authorization.split(" ");
-    token = partes[1];
+  // Header Authorization só fora de produção (útil para testar no Postman/Insomnia)
+  if (
+    !token &&
+    process.env.NODE_ENV !== "production" &&
+    typeof req.headers.authorization === "string"
+  ) {
+    const [esquema, valor] = req.headers.authorization.split(" ");
+    if (esquema === "Bearer") {
+      token = valor;
+    }
   }
 
   if (!token) {
@@ -17,8 +23,7 @@ function autenticarToken(req, res, next) {
   }
 
   try {
-    const usuario = verifyAccessToken(token);
-    req.user = usuario;
+    req.user = verifyAccessToken(token);
     next();
   } catch (erro) {
     return res.status(401).json({

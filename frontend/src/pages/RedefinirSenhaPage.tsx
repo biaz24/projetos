@@ -25,7 +25,9 @@ export const RedefinirSenhaPage: React.FC = () => {
   const temOitoCaracteres = novaSenha.length >= 8;
   const senhasCoincidem = novaSenha.length > 0 && novaSenha === confirmarSenha;
   const formularioValido = temOitoCaracteres && senhasCoincidem;
-
+  const temMaiuscula = /[A-Z]/.test(novaSenha);
+  const temNumero = /[0-9]/.test(novaSenha);
+  const temCaractereEspecial = /[^A-Za-z0-9]/.test(novaSenha);
   // 1. Validação inicial do token ao carregar a página
   useEffect(() => {
     let cancelado = false;
@@ -156,7 +158,10 @@ export const RedefinirSenhaPage: React.FC = () => {
             {/* ESTADO 1: Carregando validação do token */}
             {validandoToken && (
               <div className="card-feedback">
-                <i className="fa-solid fa-circle-notch fa-spin feedback-icon" style={{ color: "#1e3a8a" }}></i>
+                <i
+                  className="fa-solid fa-circle-notch fa-spin feedback-icon"
+                  style={{ color: "#1e3a8a" }}
+                ></i>
                 <h3>Verificando link de recuperação...</h3>
                 <p>Por favor, aguarde enquanto validamos sua solicitação.</p>
               </div>
@@ -168,14 +173,18 @@ export const RedefinirSenhaPage: React.FC = () => {
                 <i className="fa-solid fa-triangle-exclamation feedback-icon"></i>
                 <h3>Link inválido ou expirado</h3>
                 <p>
-                  O link de recuperação acessado não é válido, já foi utilizado ou expirou o prazo de 15 minutos.
+                  O link de recuperação acessado não é válido, já foi utilizado
+                  ou expirou o prazo de 15 minutos.
                 </p>
                 <Link to="/esqueceu-senha">
                   <button type="button">Solicitar novo link</button>
                 </Link>
                 <div className="register">
                   <Link to="/">
-                    <i className="fa-solid fa-arrow-left" style={{ marginRight: "5px" }}></i>
+                    <i
+                      className="fa-solid fa-arrow-left"
+                      style={{ marginRight: "5px" }}
+                    ></i>
                     Voltar para o login
                   </Link>
                 </div>
@@ -188,8 +197,9 @@ export const RedefinirSenhaPage: React.FC = () => {
                 <i className="fa-solid fa-circle-check feedback-icon"></i>
                 <h3>Senha redefinida com sucesso!</h3>
                 <p>
-                  Sua conta já está com a nova senha ativa. Redirecionando para a tela de login em{" "}
-                  <b>{contadorRedirecionamento}</b> segundo{contadorRedirecionamento !== 1 ? "s" : ""}...
+                  Sua conta já está com a nova senha ativa. Redirecionando para
+                  a tela de login em <b>{contadorRedirecionamento}</b> segundo
+                  {contadorRedirecionamento !== 1 ? "s" : ""}...
                 </p>
                 <Link to="/">
                   <button type="button">Ir para o login agora</button>
@@ -251,19 +261,58 @@ export const RedefinirSenhaPage: React.FC = () => {
                     <i
                       className={`fa-regular ${mostrarConfirmar ? "fa-eye-slash" : "fa-eye"} toggle-senha`}
                       onClick={() => setMostrarConfirmar(!mostrarConfirmar)}
-                      title={mostrarConfirmar ? "Ocultar senha" : "Exibir senha"}
+                      title={
+                        mostrarConfirmar ? "Ocultar senha" : "Exibir senha"
+                      }
                     ></i>
                   </div>
 
                   {/* Checklist visual de requisitos */}
                   <div className="requisitos-senha">
                     <p>Requisitos da senha:</p>
-                    <div className={`requisito-item ${temOitoCaracteres ? "atendido" : "nao-atendido"}`}>
-                      <i className={`fa-solid ${temOitoCaracteres ? "fa-check" : "fa-circle-dot"}`}></i>
+
+                    <div
+                      className={`requisito-item ${temOitoCaracteres ? "atendido" : "nao-atendido"}`}
+                    >
+                      <i
+                        className={`fa-solid ${temOitoCaracteres ? "fa-check" : "fa-circle-dot"}`}
+                      ></i>
                       <span>Pelo menos 8 caracteres</span>
                     </div>
-                    <div className={`requisito-item ${senhasCoincidem ? "atendido" : "nao-atendido"}`}>
-                      <i className={`fa-solid ${senhasCoincidem ? "fa-check" : "fa-circle-dot"}`}></i>
+
+                    <div
+                      className={`requisito-item ${temMaiuscula ? "atendido" : "nao-atendido"}`}
+                    >
+                      <i
+                        className={`fa-solid ${temMaiuscula ? "fa-check" : "fa-circle-dot"}`}
+                      ></i>
+                      <span>Pelo menos uma letra maiúscula</span>
+                    </div>
+
+                    <div
+                      className={`requisito-item ${temNumero ? "atendido" : "nao-atendido"}`}
+                    >
+                      <i
+                        className={`fa-solid ${temNumero ? "fa-check" : "fa-circle-dot"}`}
+                      ></i>
+                      <span>Pelo menos um número</span>
+                    </div>
+
+                    <div
+                      className={`requisito-item ${temCaractereEspecial ? "atendido" : "nao-atendido"}`}
+                    >
+                      <i
+                        className={`fa-solid ${temCaractereEspecial ? "fa-check" : "fa-circle-dot"}`}
+                      ></i>
+                      <span>Pelo menos um caractere especial</span>
+                    </div>
+
+                    <div
+                      className={`requisito-item ${senhasCoincidem ? "atendido" : "nao-atendido"}`}
+                    >
+                      <i
+                        className={`fa-solid ${senhasCoincidem ? "fa-check" : "fa-circle-dot"}`}
+                      ></i>
                       <span>As senhas coincidem</span>
                     </div>
                   </div>
@@ -273,7 +322,10 @@ export const RedefinirSenhaPage: React.FC = () => {
                     disabled={loading || !formularioValido}
                     style={{
                       opacity: loading || !formularioValido ? 0.7 : 1,
-                      cursor: loading || !formularioValido ? "not-allowed" : "pointer",
+                      cursor:
+                        loading || !formularioValido
+                          ? "not-allowed"
+                          : "pointer",
                     }}
                   >
                     {loading ? "Salvando nova senha..." : "Redefinir senha"}
@@ -282,7 +334,10 @@ export const RedefinirSenhaPage: React.FC = () => {
 
                 <div className="register">
                   <Link to="/">
-                    <i className="fa-solid fa-arrow-left" style={{ marginRight: "5px" }}></i>
+                    <i
+                      className="fa-solid fa-arrow-left"
+                      style={{ marginRight: "5px" }}
+                    ></i>
                     Voltar para o login
                   </Link>
                 </div>

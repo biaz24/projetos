@@ -5,6 +5,10 @@ import recuperacaoSenhaModel from "../models/recuperacaoSenhaModel.js";
 import emailService from "./emailService.js";
 import env from "../config/env.js";
 
+function gerarHash(token) {
+  return crypto.createHash("sha256").update(token.trim()).digest("hex");
+}
+
 async function solicitarRecuperacao(email) {
   const usuario = await usuarioModel.buscarUsuarioPorEmail(email);
 
@@ -16,18 +20,20 @@ async function solicitarRecuperacao(email) {
   await recuperacaoSenhaModel.invalidarTokensAnteriores(usuario.ID);
 
   const token = crypto.randomBytes(32).toString("hex");
-  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const tokenHash = gerarHash(token);
   const expiraAt = new Date(Date.now() + 15 * 60 * 1000);
 
   await recuperacaoSenhaModel.criar(usuario.ID, tokenHash, expiraAt);
 
   const link = `${env.frontendUrl}/redefinir-senha?token=${token}`;
 
-  await emailService.enviarEmailRecuperacaoSenha(
-    usuario.EMAIL,
-    usuario.NOME,
-    link,
-  );
+  // Sem await: o tempo de resposta não pode mudar conforme o e-mail existir ou não,
+  // e uma falha no envio não pode virar um erro visível só para e-mails cadastrados.
+  emailService
+    .enviarEmailRecuperacaoSenha(usuario.EMAIL, usuario.NOME, link)
+    .catch((erro) => {
+      console.error("Falha ao enviar e-mail de recuperação:", erro.message);
+    });
 }
 
 async function validarToken(token) {
@@ -35,18 +41,18 @@ async function validarToken(token) {
     return false;
   }
 
-  const tokenHash = crypto.createHash("sha256").update(token.trim()).digest("hex");
-  const registro = await recuperacaoSenhaModel.buscarTokenValido(tokenHash);
+  const registro = await recuperacaoSenhaModel.buscarTokenValido(
+    gerarHash(token),
+  );
 
   return Boolean(registro);
 }
 
 async function redefinirSenha(token, novaSenha) {
-  const tokenHash = crypto.createHash("sha256").update(token.trim()).digest("hex");
   const senhaHash = await bcrypt.hash(novaSenha, 12);
 
   return await recuperacaoSenhaModel.consumirTokenEAtualizarSenha(
-    tokenHash,
+    gerarHash(token),
     senhaHash,
   );
 }

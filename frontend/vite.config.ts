@@ -30,11 +30,12 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
-      // mudar depois
+
       "/rascunhos": {
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+
       "/curtidas": {
         target: "http://localhost:3000",
         changeOrigin: true,
@@ -53,6 +54,13 @@ export default defineConfig({
       "/redefinir-senha": {
         target: "http://localhost:3000",
         changeOrigin: true,
+        bypass(req) {
+          // Se for uma navegação para abrir a página,
+          // deixa o React/Vite entregar o index.html.
+          if (req.headers.accept?.includes("text/html")) {
+            return "/index.html";
+          }
+        },
       },
     },
   },

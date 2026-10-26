@@ -68,10 +68,13 @@ async function redefinirSenha(req, res) {
       !token.trim() ||
       typeof novaSenha !== "string" ||
       novaSenha.length < 8 ||
-      novaSenha.length > 128
+      Buffer.byteLength(novaSenha, "utf8") > 72 ||
+      !/[A-Z]/.test(novaSenha) ||
+      !/[0-9]/.test(novaSenha) ||
+      !/[^A-Za-z0-9]/.test(novaSenha)
     ) {
       return res.status(400).json({
-        erro: "Informe um token e uma senha com pelo menos 8 caracteres.",
+        erro: "A senha deve ter pelo menos 8 caracteres, uma letra maiúscula, um número e um caractere especial.",
       });
     }
 
