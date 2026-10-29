@@ -239,6 +239,40 @@ export default function AdminDenunciasPage() {
       showToast(erro.message || "Erro ao concluir a denúncia.", "error");
     }
   };
+  const deixarEmAnalise = async () => {
+    if (!denunciaSelecionada) return;
+
+    try {
+      setStatusRascunho("Atualizando status...");
+
+      await fetchApi(`/denuncias/${denunciaSelecionada.ID}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "Em análise",
+        }),
+      });
+
+      setDenuncias((anteriores) =>
+        anteriores.map((denuncia) =>
+          denuncia.ID === denunciaSelecionada.ID
+            ? { ...denuncia, STATUS: "Em análise" }
+            : denuncia,
+        ),
+      );
+
+      showToast("Denúncia mantida em análise.", "success");
+      fecharModal();
+    } catch (erro: any) {
+      showToast(
+        erro.message || "Não foi possível atualizar o status.",
+        "error",
+      );
+    }
+  };
+
   const denunciasFiltradas = denuncias.filter((denuncia) => {
     if (filtro === "Todas") {
       return true;
@@ -696,7 +730,6 @@ export default function AdminDenunciasPage() {
                   <h3 style={{ color: "#07327c", fontSize: "16px" }}>
                     Decisão administrativa
                   </h3>
-
                   <label
                     htmlFor="resultado-denuncia"
                     style={{
@@ -707,7 +740,6 @@ export default function AdminDenunciasPage() {
                   >
                     Resultado da análise
                   </label>
-
                   <select
                     id="resultado-denuncia"
                     value={rascunho.RESULTADO ?? ""}
@@ -734,7 +766,6 @@ export default function AdminDenunciasPage() {
                     <option value="Procedente">Denúncia procedente</option>
                     <option value="Improcedente">Denúncia improcedente</option>
                   </select>
-
                   <label
                     htmlFor="medida-denuncia"
                     style={{
@@ -745,7 +776,7 @@ export default function AdminDenunciasPage() {
                   >
                     Medida aplicada
                   </label>
-
+                  ```jsx
                   <select
                     id="medida-denuncia"
                     value={rascunho.MEDIDA_APLICADA ?? ""}
@@ -766,17 +797,17 @@ export default function AdminDenunciasPage() {
                   >
                     <option value="">Selecione a medida</option>
 
-                    <option value="Nenhuma">Nenhuma</option>
-
                     {rascunho.RESULTADO === "Procedente" && (
                       <>
                         <option value="Aviso">Aviso ao autor</option>
-                        <option value="Ocultar ideia">Ocultar ideia</option>
+                        <option value="Ocultar ideia">
+                          Ocultar ideia/ Refazer ideia
+                        </option>
                         <option value="Excluir ideia">Excluir ideia</option>
                       </>
                     )}
                   </select>
-
+                  ```
                   <label
                     htmlFor="justificativa-denuncia"
                     style={{
@@ -787,7 +818,6 @@ export default function AdminDenunciasPage() {
                   >
                     Justificativa
                   </label>
-
                   <textarea
                     id="justificativa-denuncia"
                     value={rascunho.JUSTIFICATIVA ?? ""}
@@ -810,14 +840,12 @@ export default function AdminDenunciasPage() {
                       fontFamily: "inherit",
                     }}
                   />
-
                   <p
                     aria-live="polite"
                     style={{ color: "#64748b", fontSize: "12px" }}
                   >
                     {statusRascunho}
                   </p>
-
                   <div
                     style={{
                       display: "flex",
@@ -841,6 +869,22 @@ export default function AdminDenunciasPage() {
                       }}
                     >
                       Concluir análise
+                    </button>
+                    <button
+                      type="button"
+                      onClick={deixarEmAnalise}
+                      disabled={carregandoDetalhes}
+                      style={{
+                        padding: "11px 18px",
+                        border: "1px solid #64748b",
+                        borderRadius: "8px",
+                        background: "white",
+                        color: "#334155",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Deixar em análise
                     </button>
                   </div>
                 </section>

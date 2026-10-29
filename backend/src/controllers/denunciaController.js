@@ -204,12 +204,7 @@ async function concluirAnalise(req, res) {
 
     const resultadosPermitidos = ["Procedente", "Improcedente"];
 
-    const medidasPermitidas = [
-      "Nenhuma",
-      "Aviso",
-      "Ocultar ideia",
-      "Excluir ideia",
-    ];
+    const medidasPermitidas = ["Aviso", "Ocultar ideia", "Excluir ideia"];
 
     if (!resultadosPermitidos.includes(resultado)) {
       return res.status(400).json({
@@ -217,9 +212,12 @@ async function concluirAnalise(req, res) {
       });
     }
 
-    if (!medidasPermitidas.includes(medidaAplicada)) {
+    if (
+      resultado === "Procedente" &&
+      !medidasPermitidas.includes(medidaAplicada)
+    ) {
       return res.status(400).json({
-        erro: "Selecione uma medida válida.",
+        erro: "Uma denúncia procedente precisa ter uma medida aplicada válida.",
       });
     }
 
@@ -228,6 +226,7 @@ async function concluirAnalise(req, res) {
         erro: "Uma denúncia improcedente não pode receber uma medida punitiva.",
       });
     }
+
     if (typeof justificativa !== "string" || !justificativa.trim()) {
       return res.status(400).json({
         erro: "A justificativa é obrigatória.",
@@ -272,6 +271,7 @@ async function concluirAnalise(req, res) {
     });
   }
 }
+
 export default {
   criarDenuncia,
   listarDenuncias,

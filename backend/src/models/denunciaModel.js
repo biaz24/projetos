@@ -1,4 +1,5 @@
 import connection from "../database/connection.js";
+import notificacaoModel from "./notificacaoModel.js";
 async function criarDenuncia(ideiaId, usuarioId, motivo, descricao) {
   // Busca dados completos da ideia e do autor para snapshot definitivo
   const [ideias] = await connection.query(
@@ -307,13 +308,25 @@ async function concluirAnalise(
       );
     }
 
-    // Envia uma advertência para o AUTOR da ideia
+    // Registra a advertência e cria a notificação
     if (medidaAplicada === "Aviso" && denuncia.AUTOR_ID) {
       await db.query(
         `INSERT INTO ADVERTENCIAS
-          (USUARIOS_ID, DENUNCIA_ID, ADMIN_ID, MOTIVO)
-         VALUES (?, ?, ?, ?)`,
+      (USUARIOS_ID, DENUNCIA_ID, ADMIN_ID, MOTIVO)
+     VALUES (?, ?, ?, ?)`,
         [denuncia.AUTOR_ID, denunciaId, adminId, justificativa],
+      );
+
+      await db.query(
+        `INSERT INTO NOTIFICACOES
+      (USUARIOS_ID, TIPO, TITULO, MENSAGEM)
+     VALUES (?, ?, ?, ?)`,
+        [
+          denuncia.AUTOR_ID,
+          "ADVERTENCIA",
+          "Você recebeu uma advertência",
+          justificativa,
+        ],
       );
     }
 
@@ -363,19 +376,29 @@ async function concluirAnalise(
 
       // 2. Limpar dados dependentes
       try {
-        await db.query("DELETE FROM CURTIDAS WHERE IDEIAS_ID = ?", [denuncia.IDEIAS_ID]);
+        await db.query("DELETE FROM CURTIDAS WHERE IDEIAS_ID = ?", [
+          denuncia.IDEIAS_ID,
+        ]);
       } catch (ignore) {}
       try {
-        await db.query("DELETE FROM FAVORITOS WHERE IDEIAS_ID = ?", [denuncia.IDEIAS_ID]);
+        await db.query("DELETE FROM FAVORITOS WHERE IDEIAS_ID = ?", [
+          denuncia.IDEIAS_ID,
+        ]);
       } catch (ignore) {}
       try {
-        await db.query("DELETE FROM VISUALIZACOES WHERE IDEIAS_ID = ?", [denuncia.IDEIAS_ID]);
+        await db.query("DELETE FROM VISUALIZACOES WHERE IDEIAS_ID = ?", [
+          denuncia.IDEIAS_ID,
+        ]);
       } catch (ignore) {}
       try {
-        await db.query("DELETE FROM COMENTARIOS WHERE IDEIAS_ID = ?", [denuncia.IDEIAS_ID]);
+        await db.query("DELETE FROM COMENTARIOS WHERE IDEIAS_ID = ?", [
+          denuncia.IDEIAS_ID,
+        ]);
       } catch (ignore) {}
       try {
-        await db.query("DELETE FROM ANEXOS WHERE IDEIAS_ID = ?", [denuncia.IDEIAS_ID]);
+        await db.query("DELETE FROM ANEXOS WHERE IDEIAS_ID = ?", [
+          denuncia.IDEIAS_ID,
+        ]);
       } catch (ignore) {}
 
       // 3. Excluir a ideia da tabela principal

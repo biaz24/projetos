@@ -201,7 +201,9 @@ async function deletarideia(id) {
     await connection.query("DELETE FROM FAVORITOS WHERE IDEIAS_ID = ?", [id]);
   } catch (ignore) {}
   try {
-    await connection.query("DELETE FROM VISUALIZACOES WHERE IDEIAS_ID = ?", [id]);
+    await connection.query("DELETE FROM VISUALIZACOES WHERE IDEIAS_ID = ?", [
+      id,
+    ]);
   } catch (ignore) {}
   try {
     await connection.query("DELETE FROM COMENTARIOS WHERE IDEIAS_ID = ?", [id]);
@@ -229,19 +231,21 @@ async function deletarideia(id) {
   return resultado;
 }
 
+// mudei
 async function listarIdeiasPorUsuario(usuarioId) {
   const [ideias] = await connection.query(
     `SELECT 
       i.ID,
-      i.USUARIOS_ID,
-      i.TITULO,
-      i.DESCRICAO,
-      COALESCE(i.CATEGORIA, 'Geral') as CATEGORIA,
-      COALESCE(i.STATUS, 'Disponível') as STATUS,
-      i.ANONIMO,
-      i.CREATED_AT,
-      u.NOME as NOME_AUTOR,
-      u.EMAIL as EMAIL_AUTOR,
+i.TITULO,
+i.DESCRICAO,
+COALESCE(i.CATEGORIA, 'Geral') as CATEGORIA,
+COALESCE(i.STATUS, 'Disponível') as STATUS,
+i.ANONIMO,
+i.CREATED_AT,
+CASE
+  WHEN i.ANONIMO = 1 THEN NULL
+  ELSE u.NOME
+END AS NOME_AUTOR,
       CAST((SELECT COUNT(*) FROM COMENTARIOS com WHERE com.IDEIAS_ID = i.ID) AS SIGNED) as comentarios_count,
       CAST((SELECT COUNT(*) FROM VISUALIZACOES v WHERE v.IDEIAS_ID = i.ID) AS SIGNED) visualizacoes_count
     FROM IDEIAS i
