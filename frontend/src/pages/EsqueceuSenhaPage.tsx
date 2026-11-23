@@ -57,10 +57,20 @@ export const EsqueceuSenhaPage: React.FC = () => {
             Vamos ajudar você a recuperar o acesso à sua conta.
           </p>
 
+          {/* Imagem para o tema claro */}
           <img
             src="/img/imagem1.png"
-            alt="" aria-hidden="true"
-            className="imagem-recuperacao"
+            alt=""
+            aria-hidden="true"
+            className="imagem-recuperacao imagem-recuperacao-clara"
+          />
+
+          {/* Imagem para o tema escuro */}
+          <img
+            src="img/imagem1escura.png"
+            alt=""
+            aria-hidden="true"
+            className="imagem-recuperacao imagem-recuperacao-escura"
           />
         </div>
 
@@ -70,7 +80,10 @@ export const EsqueceuSenhaPage: React.FC = () => {
             {!submitted ? (
               <>
                 <h2>Recuperar senha</h2>
-                <p>Digite seu e-mail cadastrado para receber as instruções de recuperação.</p>
+                <p>
+                  Digite seu e-mail cadastrado para receber as instruções de
+                  recuperação.
+                </p>
 
                 {erro && (
                   <div className="alert-box" role="alert">
@@ -106,8 +119,9 @@ export const EsqueceuSenhaPage: React.FC = () => {
                 <i className="fa-solid fa-circle-check feedback-icon"></i>
                 <h3>E-mail enviado!</h3>
                 <p>
-                  Se o endereço <strong>{email}</strong> estiver cadastrado em nossa plataforma,
-                  você receberá um link em alguns instantes para definir uma nova senha.
+                  Se o endereço <strong>{email}</strong> estiver cadastrado em
+                  nossa plataforma, você receberá um link em alguns instantes
+                  para definir uma nova senha.
                 </p>
                 <button
                   type="button"

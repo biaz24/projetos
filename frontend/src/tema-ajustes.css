@@ -4,7 +4,10 @@ html[data-theme="dark"] {
   color-scheme: dark;
 }
 
-html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="file"]),
+html[data-theme="dark"]
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+    [type="submit"]
+  ):not([type="button"]):not([type="file"]),
 html[data-theme="dark"] select,
 html[data-theme="dark"] textarea {
   background-color: #1d2742;
@@ -68,4 +71,29 @@ html[data-theme="dark"] .input-box {
 /* ilustrações têm fundo branco: suaviza para não "acender" a tela escura */
 html[data-theme="dark"] .auth-page-wrapper img {
   filter: brightness(0.88);
+}
+
+/* Tema claro */
+.imagem-login.imagem-login-clara {
+  display: block;
+}
+
+.imagem-login.imagem-login-escura {
+  display: none;
+}
+
+/* Tema escuro */
+html[data-theme="dark"] .imagem-login.imagem-login-clara {
+  display: none;
+}
+
+html[data-theme="dark"] .imagem-login.imagem-login-escura {
+  display: block;
+}
+
+html[data-theme="dark"] .auth-page-wrapper .imagem-login-escura {
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  filter: none;
 }

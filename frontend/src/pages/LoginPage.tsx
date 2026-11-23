@@ -70,10 +70,20 @@ export const LoginPage: React.FC = () => {
             boas ideias.
           </p>
 
+          {/* Imagem para o tema claro */}
           <img
             src="/img/imagem1.png"
-            alt="" aria-hidden="true"
-            className="imagem-login"
+            alt=""
+            aria-hidden="true"
+            className="imagem-login imagem-login-clara"
+          />
+
+          {/* Imagem para o tema escuro */}
+          <img
+            src="/img/imagem1escura.png"
+            alt=""
+            aria-hidden="true"
+            className="imagem-login imagem-login-escura"
           />
         </div>
 
@@ -137,17 +147,26 @@ export const LoginPage: React.FC = () => {
                 </p>
               )}
 
-              {precisaConfirmar && <ReenviarConfirmacao email={email.trim().toLowerCase()} />}
+              {precisaConfirmar && (
+                <ReenviarConfirmacao email={email.trim().toLowerCase()} />
+              )}
 
               <div className="divisa"></div>
             </form>
 
             <div className="register">
-              Não tem login?{" "} <Link to="/cadastro">Cadastre-se</Link>
+              Não tem login? <Link to="/cadastro">Cadastre-se</Link>
             </div>
 
-            <p style={{ textAlign: "center", fontSize: "12px", margin: "14px 0 0" }}>
-              <Link to="/termos">Termos de Uso</Link> · <Link to="/privacidade">Política de Privacidade</Link>
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: "12px",
+                margin: "14px 0 0",
+              }}
+            >
+              <Link to="/termos">Termos de Uso</Link> ·{" "}
+              <Link to="/privacidade">Política de Privacidade</Link>
             </p>
           </div>
         </div>
