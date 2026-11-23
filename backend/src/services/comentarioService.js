@@ -1,6 +1,29 @@
 import comentarioModel from "../models/comentarioModel.js";
+import ideiaModel from "../models/ideiaModel.js";
+
+function erroComStatus(mensagem, status) {
+  const error = new Error(mensagem);
+  error.status = status;
+  return error;
+}
 
 async function criarComentario(usuarioId, ideiasId, comentarios, parentId = null) {
+  // A ideia precisa existir e estar visível (ideias ocultas por moderação não recebem comentários).
+  const ideia = await ideiaModel.buscarIdeiaPorId(ideiasId);
+
+  if (!ideia || (ideia.VISIBILIDADE && ideia.VISIBILIDADE !== "Publica")) {
+    throw erroComStatus("Ideia não encontrada", 404);
+  }
+
+  // Uma resposta só pode apontar para um comentário DA MESMA ideia.
+  if (parentId) {
+    const comentarioPai = await comentarioModel.buscarComentarioPorId(parentId);
+
+    if (!comentarioPai || Number(comentarioPai.IDEIAS_ID) !== Number(ideiasId)) {
+      throw erroComStatus("Comentário original não encontrado nesta ideia", 400);
+    }
+  }
+
   return await comentarioModel.criarComentario(
     usuarioId,
     ideiasId,

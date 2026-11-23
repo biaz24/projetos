@@ -18,6 +18,14 @@ async function criarAnexo(
   return resultado;
 }
 
+async function buscarPorNomeSalvo(nomeSalvo) {
+  const [linhas] = await connection.query(
+    "SELECT ID, IDEIAS_ID, NOME_ARQUIVO, TIPO FROM ANEXOS WHERE NOME_SALVO = ? LIMIT 1",
+    [nomeSalvo],
+  );
+  return linhas[0];
+}
+
 async function listarAnexosPorIdeia(ideiaId) {
   const [anexos] = await connection.query(
     `SELECT
@@ -70,6 +78,7 @@ async function excluirAnexo(id) {
 export default {
   criarAnexo,
   listarAnexosPorIdeia,
+  buscarPorNomeSalvo,
   buscarAnexoPorId,
   excluirAnexo,
 };

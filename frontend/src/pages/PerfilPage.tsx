@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
 import { StatCard } from "../components/StatCard";
+import { SeletorTema } from "../components/SeletorTema";
+import { SegurancaConta } from "../components/SegurancaConta";
 import { EmptyState } from "../components/EmptyState";
 import { useAuth } from "../context/AuthContext";
 import { fetchApi } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { Ideia } from "../types";
+import { useDestaque } from "../utils/destaque";
 
 interface UserStats {
   ideias_count: number;
@@ -25,29 +28,47 @@ export const PerfilPage: React.FC = () => {
     visualizacoes_count: 0,
   });
   const [minhasIdeias, setMinhasIdeias] = useState<Ideia[]>([]);
+  const [ideiasOcultas, setIdeiasOcultas] = useState<Ideia[]>([]);
+
+  // A opção escolhida fica na URL (?aba=ocultas): é assim que o sininho leva
+  // o usuário direto para "Minhas ideias ocultadas".
+  const [searchParams, setSearchParams] = useSearchParams();
+  const visao = searchParams.get("aba") === "ocultas" ? "ocultas" : "publicadas";
+
+  const trocarVisao = (nova: string) => {
+    setSearchParams(nova === "ocultas" ? { aba: "ocultas" } : {}, {
+      replace: true,
+    });
+  };
   const [loading, setLoading] = useState(true);
+
+  // Vindo do sininho: a ideia ocultada pisca quando a lista carregar
+  useDestaque(!loading && visao === "ocultas");
 
   // Estado do Modal de Edição de Perfil
   const [modalOpen, setModalOpen] = useState(false);
   const [editNome, setEditNome] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editSenhaAtual, setEditSenhaAtual] = useState("");
   const [saving, setSaving] = useState(false);
 
   const carregarPerfil = async () => {
     if (!user) return;
     try {
       setLoading(true);
-      const [statsData, ideiasData] = await Promise.all([
+      const [statsData, ideiasData, ocultasData] = await Promise.all([
         fetchApi<UserStats>("/usuarios/me/stats").catch(() => ({
           ideias_count: 0,
           comentarios_count: 0,
           visualizacoes_count: 0,
         })),
         fetchApi<Ideia[]>(`/usuarios/${user.id}/ideias`).catch(() => []),
+        fetchApi<Ideia[]>("/usuarios/me/ideias-ocultas").catch(() => []),
       ]);
 
       setStats(statsData);
       setMinhasIdeias(Array.isArray(ideiasData) ? ideiasData : []);
+      setIdeiasOcultas(Array.isArray(ocultasData) ? ocultasData : []);
     } catch (err) {
       console.error("Erro ao carregar perfil:", err);
       showToast("Erro ao carregar perfil", "error");
@@ -64,9 +85,14 @@ export const PerfilPage: React.FC = () => {
     if (user) {
       setEditNome(user.nome);
       setEditEmail(user.email);
+      setEditSenhaAtual("");
       setModalOpen(true);
     }
   };
+
+  // Trocar o e-mail exige a senha atual (segurança da conta).
+  const emailMudou =
+    Boolean(user) && editEmail.trim().toLowerCase() !== String(user?.email ?? "").trim().toLowerCase();
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,13 +101,24 @@ export const PerfilPage: React.FC = () => {
     setSaving(true);
 
     try {
-      await fetchApi(`/usuarios/${user.id}`, {
+      const resposta = await fetchApi<{ emailPendente?: string | null }>(`/usuarios/${user.id}`, {
         method: "PUT",
-        body: JSON.stringify({ nome: editNome, email: editEmail }),
+        body: JSON.stringify({
+          nome: editNome,
+          email: editEmail,
+          senhaAtual: emailMudou ? editSenhaAtual : undefined,
+        }),
       });
       await refreshUser();
       setModalOpen(false);
-      showToast("Perfil atualizado com sucesso!", "success");
+      if (resposta.emailPendente) {
+        showToast(
+          `Enviamos um link para ${resposta.emailPendente}. O e-mail só muda depois que você confirmar.`,
+          "info",
+        );
+      } else {
+        showToast("Perfil atualizado com sucesso!", "success");
+      }
     } catch (err: any) {
       showToast(err.message || "Erro ao atualizar perfil", "error");
     } finally {
@@ -190,6 +227,8 @@ export const PerfilPage: React.FC = () => {
               borderRadius: "6px",
               fontSize: "11px",
               fontWeight: "bold",
+              width: "auto",
+              height: "auto",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -200,6 +239,10 @@ export const PerfilPage: React.FC = () => {
             Editar perfil
           </button>
         </div>
+
+        <SeletorTema />
+
+        <SegurancaConta />
 
         {/* Seção Minhas Estatísticas */}
         <h3 style={{ fontSize: "14px", color: "#1e3a8a", marginBottom: "12px" }}>
@@ -236,17 +279,140 @@ export const PerfilPage: React.FC = () => {
           />
         </div>
 
-        {/* Seção Minhas Ideias Publicadas */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-          <h3 style={{ fontSize: "14px", color: "#1e3a8a", margin: 0 }}>
-            Minhas ideias publicadas
-          </h3>
+        {/* Seção Minhas Ideias (publicadas / ocultadas) */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", gap: "12px", flexWrap: "wrap" }}>
+          <label htmlFor="visao-ideias" style={{ fontSize: "14px", color: "#1e3a8a", fontWeight: "bold" }}>
+            Minhas ideias
+          </label>
+
+          <select
+            id="visao-ideias"
+            value={visao}
+            onChange={(e) => trocarVisao(e.target.value)}
+            style={{
+              padding: "9px 12px",
+              borderRadius: "8px",
+              border: "1px solid #cbd5e1",
+              background: "white",
+              color: "#1e3a8a",
+              fontWeight: "bold",
+              fontSize: "13px",
+              cursor: "pointer",
+            }}
+          >
+            <option value="publicadas">
+              Minhas ideias publicadas ({minhasIdeias.length})
+            </option>
+            <option value="ocultas">
+              Minhas ideias ocultadas ({ideiasOcultas.length})
+            </option>
+          </select>
         </div>
 
         {loading ? (
           <div style={{ textAlign: "center", padding: "30px 0" }}>
             <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: "1.5rem", color: "#07327c" }}></i>
           </div>
+        ) : visao === "ocultas" ? (
+          ideiasOcultas.length === 0 ? (
+            <EmptyState
+              icon="fa-regular fa-eye"
+              title="Nenhuma ideia ocultada"
+              description="Quando a moderação ocultar uma das suas ideias, ela aparece aqui para você reformular."
+            />
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 4px" }}>
+                Estas ideias não aparecem para outras pessoas. Reformule o
+                conteúdo e reenvie para a revisão da moderação.
+              </p>
+
+              {ideiasOcultas.map((item) => {
+                const emRevisao = item.VISIBILIDADE === "EmRevisao";
+
+                return (
+                  <div
+                    key={item.ID}
+                    data-destaque={`ideia-${item.ID}`}
+                    style={{
+                      background: "white",
+                      border: `1px solid ${emRevisao ? "#bfdbfe" : "#fcd34d"}`,
+                      borderRadius: "8px",
+                      padding: "14px 18px",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "6px" }}>
+                      <h4 style={{ fontSize: "13px", color: "#1e3a8a", margin: 0 }}>
+                        {item.TITULO}
+                      </h4>
+                      <span
+                        style={{
+                          background: emRevisao ? "#dbeafe" : "#fef3c7",
+                          color: emRevisao ? "#1e40af" : "#92400e",
+                          fontSize: "10px",
+                          fontWeight: "bold",
+                          padding: "2px 8px",
+                          borderRadius: "10px",
+                        }}
+                      >
+                        {emRevisao ? "Em revisão" : "Oculta pela moderação"}
+                      </span>
+                    </div>
+
+                    {emRevisao ? (
+                      <p style={{ fontSize: "12px", color: "#475569", margin: "0 0 10px" }}>
+                        Você reenviou esta ideia. Aguarde a decisão da
+                        moderação; você será avisado pelo sininho.
+                      </p>
+                    ) : (
+                      item.MOTIVO_MODERACAO && (
+                        <p style={{ fontSize: "12px", color: "#475569", margin: "0 0 10px", overflowWrap: "anywhere" }}>
+                          <strong>Motivo da moderação:</strong> {item.MOTIVO_MODERACAO}
+                        </p>
+                      )
+                    )}
+
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      {!emRevisao && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/ideia/${item.ID}?reformular=1`)}
+                          style={{
+                            padding: "8px 14px",
+                            border: "none",
+                            borderRadius: "8px",
+                            background: "#07327c",
+                            color: "white",
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Reformular
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/ideia/${item.ID}`)}
+                        style={{
+                          padding: "8px 14px",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: "8px",
+                          background: "white",
+                          color: "#334155",
+                          fontSize: "12px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Ver ideia
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
         ) : minhasIdeias.length === 0 ? (
           <EmptyState
             icon="fa-regular fa-lightbulb"
@@ -329,6 +495,9 @@ export const PerfilPage: React.FC = () => {
       {/* Modal de Edição de Perfil */}
       {modalOpen && (
         <div
+          role="dialog"
+          aria-modal="true"
+          data-esc="global"
           style={{
             position: "fixed",
             top: 0,
@@ -357,7 +526,7 @@ export const PerfilPage: React.FC = () => {
               <h3 style={{ fontSize: "16px", color: "#1e3a8a", margin: 0 }}>Editar Perfil</h3>
               <button
                 onClick={() => setModalOpen(false)}
-                style={{ background: "none", border: "none", fontSize: "16px", cursor: "pointer", color: "#64748b" }}
+                style={{ background: "none", border: "none", fontSize: "16px", cursor: "pointer", color: "#64748b", width: "auto", height: "auto", padding: "4px" }}
               >
                 <i className="fa-solid fa-xmark"></i>
               </button>
@@ -402,6 +571,30 @@ export const PerfilPage: React.FC = () => {
                 }}
               />
 
+              {emailMudou && (
+                <>
+                  <label style={{ fontSize: "12px", color: "#1e3a8a", fontWeight: "bold", display: "block", marginBottom: "6px" }}>
+                    Sua senha atual (para trocar o e-mail). Enviaremos um link de confirmação ao novo endereço.
+                  </label>
+                  <input
+                    type="password"
+                    value={editSenhaAtual}
+                    onChange={(e) => setEditSenhaAtual(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "6px",
+                      fontSize: "13px",
+                      marginBottom: "20px",
+                      outline: "none",
+                    }}
+                  />
+                </>
+              )}
+
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
                 <button
                   type="button"
@@ -409,6 +602,8 @@ export const PerfilPage: React.FC = () => {
                   style={{
                     background: "#f1f5f9",
                     color: "#475569",
+                    width: "auto",
+                    height: "auto",
                     border: "none",
                     padding: "8px 16px",
                     borderRadius: "6px",
@@ -424,6 +619,8 @@ export const PerfilPage: React.FC = () => {
                   style={{
                     background: "#07327c",
                     color: "white",
+                    width: "auto",
+                    height: "auto",
                     border: "none",
                     padding: "8px 16px",
                     borderRadius: "6px",

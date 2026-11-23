@@ -1,16 +1,15 @@
-# Variáveis de ambiente
+# Variáveis de ambiente (NUNCA enviar para o GitHub)
 .env
 .env.*
 !.env.example
 
 # Dependências
 node_modules/
-**/node_modules/
+
+# Arquivos enviados pelos usuários
 uploads/
 
-# Arquivos de build
+# Builds e logs
 dist/
 build/
-
-# Logs
 *.log

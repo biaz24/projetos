@@ -61,6 +61,28 @@ async function ocultarIdeia(id) {
   return await ideiaModel.ocultarIdeia(id);
 }
 
+// ---- Ideias ocultadas pela moderação e reformulação ----
+
+async function listarOcultasDoUsuario(usuarioId) {
+  return await ideiaModel.listarOcultasDoUsuario(usuarioId);
+}
+
+async function reenviarParaRevisao(id) {
+  return await ideiaModel.reenviarParaRevisao(id);
+}
+
+async function listarEmRevisao() {
+  return await ideiaModel.listarEmRevisao();
+}
+
+async function aprovarRevisao(id) {
+  return await ideiaModel.aprovarRevisao(id);
+}
+
+async function rejeitarRevisao(id, motivo) {
+  return await ideiaModel.rejeitarRevisao(id, motivo);
+}
+
 export default {
   criarIdeia,
   listarIdeias,
@@ -69,4 +91,9 @@ export default {
   deletarideia,
   listarideiasPorusuario,
   ocultarIdeia,
+  listarOcultasDoUsuario,
+  reenviarParaRevisao,
+  listarEmRevisao,
+  aprovarRevisao,
+  rejeitarRevisao,
 };

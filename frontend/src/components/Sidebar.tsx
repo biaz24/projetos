@@ -1,20 +1,63 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { fetchApi } from "../services/api";
 
 interface SidebarProps {
+  desktopOpen: boolean;
   mobileOpen?: boolean;
+  onCloseDesktop: () => void;
   onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
+  desktopOpen,
   mobileOpen = false,
+  onCloseDesktop,
   onCloseMobile,
 }) => {
   const { logout, user } = useAuth();
 
   // Controla a abertura e o fechamento do modal
   const [confirmarSaida, setConfirmarSaida] = useState(false);
+
+  // Mensagens de conversas ainda não lidas (número ao lado de "Conversas")
+  const [conversasNaoLidas, setConversasNaoLidas] = useState(0);
+  const logado = Boolean(user);
+
+  const handleToggleSidebar = () => {
+    if (mobileOpen) {
+      onCloseMobile?.();
+      return;
+    }
+
+    onCloseDesktop();
+  };
+
+  useEffect(() => {
+    if (!logado) return undefined;
+
+    let ativo = true;
+
+    const buscar = async () => {
+      try {
+        const resposta = await fetchApi<{ total: number }>(
+          "/contatos/nao-lidas",
+        );
+        if (ativo) setConversasNaoLidas(Number(resposta?.total) || 0);
+      } catch {
+        // recurso secundário: se falhar, mantém o número anterior
+      }
+    };
+
+    buscar();
+    const intervalo = setInterval(buscar, 30000);
+
+    return () => {
+      ativo = false;
+      clearInterval(intervalo);
+    };
+  }, [logado]);
   // Executa o logout após a confirmação
   const handleLogout = () => {
     setConfirmarSaida(false);
@@ -41,15 +84,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Barra lateral */}
       <aside
-        className={`sidebar ${mobileOpen ? "mobile-active" : ""}`}
-        style={{
-          zIndex: 100,
-          position: mobileOpen ? "fixed" : undefined,
-          left: mobileOpen ? 0 : undefined,
-          top: mobileOpen ? 0 : undefined,
-          height: "100vh",
-          transition: "transform 0.3s ease",
-        }}
+        className={`sidebar ${desktopOpen ? "" : "desktop-hidden"} ${
+          mobileOpen ? "mobile-active" : ""
+        }`}
+        style={{ zIndex: 100 }}
       >
         {/* Logo */}
         <div
@@ -72,20 +110,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Botão para fechar o menu no celular */}
-          {mobileOpen && (
+          {(desktopOpen || mobileOpen) && (
             <button
               type="button"
-              onClick={onCloseMobile}
-              style={{
-                background: "none",
-                border: "none",
-                color: "white",
-                fontSize: "16px",
-                cursor: "pointer",
-              }}
-              aria-label="Fechar menu"
+              onClick={handleToggleSidebar}
+              className="sidebar-toggle"
+              aria-label="Recolher menu lateral"
             >
-              <i className="fa-solid fa-xmark"></i>
+              <i className="fa-solid fa-bars"></i>
             </button>
           )}
         </div>
@@ -134,6 +166,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <i className="fa-solid fa-file-lines"></i>
             <span>Rascunhos</span>
+          </NavLink>
+
+          <NavLink
+            to="/conversas"
+            className={({ isActive }) =>
+              `menu-item ${isActive ? "active" : ""}`
+            }
+            onClick={onCloseMobile}
+          >
+            <i className="fa-solid fa-comments"></i>
+            <span>Conversas</span>
+            {conversasNaoLidas > 0 && (
+              <span
+                aria-label={`${conversasNaoLidas} mensagens não lidas`}
+                style={{
+                  marginLeft: "auto",
+                  background: "#ef4444",
+                  color: "white",
+                  fontSize: "10px",
+                  fontWeight: "bold",
+                  borderRadius: "999px",
+                  minWidth: "18px",
+                  height: "18px",
+                  padding: "0 5px",
+                  boxSizing: "border-box",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {conversasNaoLidas > 9 ? "9+" : conversasNaoLidas}
+              </span>
+            )}
           </NavLink>
 
           {/* Denúncias: disponível somente para administradores */}

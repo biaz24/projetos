@@ -667,3 +667,35 @@ footer {
     transition: none;
   }
 }
+/* Computador: esconde a barra lateral quando fechada */
+.sidebar.desktop-hidden {
+  display: none !important;
+}
+
+/* Celular: mantém a barra para usar a animação de entrada */
+@media (max-width: 768px) {
+  .sidebar.desktop-hidden {
+    display: flex !important;
+  }
+}
+/* Diminuir o botão hambúrguer dentro da barra lateral */
+.sidebar .logo .sidebar-toggle {
+  width: 26px !important;
+  min-width: 26px !important;
+  max-width: 26px !important;
+
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+
+  flex: 0 0 26px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+
+  font-size: 14px !important;
+  border-radius: 6px;
+}
+
+.sidebar .logo .sidebar-toggle i {
+  font-size: 14px !important;
+}

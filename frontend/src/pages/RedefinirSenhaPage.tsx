@@ -147,7 +147,7 @@ export const RedefinirSenhaPage: React.FC = () => {
 
           <img
             src="/img/imagem1.png"
-            alt="Ilustração do sistema"
+            alt="" aria-hidden="true"
             className="imagem-recuperacao"
           />
         </div>

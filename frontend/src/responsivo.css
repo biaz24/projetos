@@ -1,0 +1,256 @@
+/* ==========================================================================
+   Rolagem e responsividade de todas as páginas.
+   Vem DEPOIS de todos os outros .css (veja main.tsx) para corrigir três coisas:
+   1) o CSS antigo travava a rolagem da página inteira (overflow: hidden);
+   2) as telas de login/cadastro/recuperar tinham altura fixa (cortavam o conteúdo);
+   3) nada se adaptava bem a "meia janela" (janela dividida com outro programa).
+   ========================================================================== */
+
+/* ---- 1. A página sempre rola ---- */
+
+html {
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
+#root {
+  height: auto;
+  min-height: 100vh;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+/* ---- 2. Telas com menu lateral (usuário logado) ---- */
+
+/* O menu e a área de conteúdo ocupam a altura da janela; só o conteúdo rola. */
+.home-container {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.sidebar {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.home-container .main-content {
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* A barra de cima acompanha a rolagem em vez de sumir */
+.home-container .main-content > .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.content {
+  min-width: 0;
+}
+
+/* Janela média (ex.: metade de um monitor): menos margem, mais espaço útil */
+@media (max-width: 1000px) {
+  .content {
+    padding: 20px 24px;
+  }
+}
+
+@media (max-width: 560px) {
+  .content {
+    padding: 14px 12px;
+  }
+}
+
+/* ---- 3. Login, cadastro, recuperar senha, confirmar e-mail ---- */
+
+.auth-page-wrapper {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: clamp(8px, 2.5vw, 30px);
+  align-items: center;
+}
+
+.auth-page-wrapper .container {
+  width: 100%;
+  max-width: 1200px;
+  height: auto;
+  min-height: min(720px, calc(100vh - 2 * clamp(8px, 2.5vw, 30px)));
+  max-height: none;
+  margin: 0 auto;
+  overflow: hidden; /* só recorta os cantos arredondados; a altura cresce com o conteúdo */
+}
+
+.auth-page-wrapper .left {
+  padding: clamp(24px, 5vw, 76px);
+}
+
+.auth-page-wrapper .right {
+  padding: clamp(14px, 3vw, 50px);
+}
+
+.auth-page-wrapper .card {
+  max-width: 500px;
+  padding: clamp(22px, 4vw, 50px);
+}
+
+/* Imagens ao lado do formulário: sempre inteiras, nunca cortadas nem esticadas */
+.auth-page-wrapper .imagem-login,
+.auth-page-wrapper .imagem-recuperacao {
+  display: block;
+  width: 100%;
+  max-width: min(420px, 100%);
+  height: auto;
+  max-height: min(46vh, 420px);
+  object-fit: contain;
+  object-position: left center;
+  margin: clamp(10px, 3vh, 30px) 0 0;
+}
+
+/* Janela estreita (metade de um notebook, tablet em pé, celular): tudo em uma coluna */
+@media (max-width: 860px) {
+  .auth-page-wrapper {
+    align-items: flex-start;
+  }
+
+  .auth-page-wrapper .container {
+    flex-direction: column;
+    min-height: 0;
+    border-radius: 20px;
+  }
+
+  .auth-page-wrapper .left,
+  .auth-page-wrapper .right {
+    width: 100%;
+    flex: none;
+  }
+
+  .auth-page-wrapper .left {
+    padding: 28px 24px 8px;
+    align-items: center;
+    text-align: center;
+  }
+
+  .auth-page-wrapper .left .logo {
+    top: 0;
+    margin-bottom: 14px;
+    justify-content: center;
+  }
+
+  .auth-page-wrapper .left h1 {
+    font-size: clamp(26px, 6vw, 36px);
+    margin-bottom: 10px;
+  }
+
+  .auth-page-wrapper .left p {
+    margin-bottom: 14px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .auth-page-wrapper .left p br {
+    display: none;
+  }
+
+  /* imagem menor para o formulário aparecer logo */
+  .auth-page-wrapper .imagem-login,
+  .auth-page-wrapper .imagem-recuperacao {
+    max-width: min(300px, 70%);
+    max-height: 190px;
+    margin: 6px auto 0;
+    object-position: center;
+  }
+
+  .auth-page-wrapper .right {
+    padding: 8px 16px 28px;
+  }
+
+  .auth-page-wrapper .card {
+    box-shadow: none;
+    padding: 20px 4px;
+  }
+}
+
+/* Celular bem estreito: o formulário é o que importa */
+@media (max-width: 480px) {
+  .auth-page-wrapper {
+    padding: 0;
+  }
+
+  .auth-page-wrapper .container {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  .auth-page-wrapper .imagem-login,
+  .auth-page-wrapper .imagem-recuperacao {
+    max-height: 150px;
+  }
+}
+
+/* Janela baixa: a imagem some para o formulário caber sem rolar tanto */
+@media (max-height: 560px) {
+  .auth-page-wrapper .imagem-login,
+  .auth-page-wrapper .imagem-recuperacao {
+    display: none;
+  }
+}
+
+/* ---- 4. Termos de Uso e Política de Privacidade ---- */
+
+.dl-pagina {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ---- 5. Nada pode vazar para o lado ---- */
+
+.home-container .content,
+.dl-folha,
+.auth-page-wrapper .card {
+  overflow-wrap: anywhere;
+}
+
+/* ---- 6. Correções de vazamento do CSS antigo ---- */
+
+/* o nome "Ideia Futura" estava branco sobre fundo branco nas telas de login/cadastro */
+.auth-page-wrapper .logo,
+.auth-page-wrapper .logo span {
+  color: #1e3a8a;
+}
+
+.auth-page-wrapper .imagem-login,
+.auth-page-wrapper .imagem-recuperacao {
+  border-radius: 18px;
+}
+
+/* Botões com estilo próprio no próprio componente não herdam mais o "botão de
+   formulário" global (largura 100% e altura 56px) das telas de login. */
+.home-container button[style],
+.dl-folha button[style] {
+  width: auto;
+  height: auto;
+}

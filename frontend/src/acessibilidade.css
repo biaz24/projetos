@@ -1,0 +1,77 @@
+/* Acessibilidade global: foco visível para quem navega só com o teclado (Tab),
+   link "Pular para o conteúdo", texto só para leitor de tela e menos movimento. */
+
+/* Anel de foco forte, igual em todas as páginas (sobrepõe os anéis fracos antigos) */
+:focus-visible {
+  outline: 3px solid #0b4fd8 !important;
+  outline-offset: 2px !important;
+}
+:root[data-theme="dark"] :focus-visible {
+  outline-color: #ffd166 !important;
+}
+
+/* Quem clica com o mouse não vê o anel; quem usa Tab vê */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* O conteúdo principal recebe o foco ao trocar de página, sem desenhar contorno */
+#conteudo:focus,
+#conteudo:focus-visible {
+  outline: none !important;
+}
+
+/* Link que aparece só ao apertar Tab no começo da página */
+.pular-conteudo {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 5000;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: #07327c;
+  color: #fff;
+  font: 700 14px Arial, sans-serif;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.pular-conteudo:focus {
+  transform: translateY(0);
+}
+
+/* Texto lido por leitores de tela, invisível na tela */
+.so-leitor-de-tela {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Alvos de toque/clique não muito pequenos nos botões só de ícone */
+.home-container .topbar button,
+.home-container .topbar a {
+  min-height: 32px;
+}
+
+/* Respeita "reduzir movimento" do sistema em todo o site */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Fundos azul-escuros: anel amarelo, para aparecer bem */
+aside :focus-visible,
+.pular-conteudo:focus-visible {
+  outline-color: #ffd166 !important;
+}

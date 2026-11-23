@@ -1,0 +1,381 @@
+/* Painel de notificações (sininho). Classes começam com "nt-". */
+
+.nt-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: transparent;
+}
+
+.nt-painel {
+  --nt-navy: #07327c;
+  --nt-ink: #1b2540;
+  --nt-mute: #6b7a99;
+  --nt-line: #e8edf6;
+  --nt-wash: #f3f6fc;
+  --nt-blue: #1d5bd6;
+
+  position: fixed;
+  top: 58px;
+  right: 18px;
+  z-index: 901;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(600px, calc(100vh - 80px));
+  border-radius: 18px;
+  background: #fff;
+  color: var(--nt-ink);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+  box-shadow:
+    0 24px 60px -24px rgba(7, 50, 124, 0.55),
+    0 0 0 1px var(--nt-line);
+  transform-origin: top right;
+  animation: nt-abre 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* blindagem contra o CSS global de button */
+.nt-painel button {
+  width: auto;
+  height: auto;
+  margin: 0;
+  font-family: inherit;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.nt-painel button:hover:not(:disabled) {
+  background: var(--bh, var(--b, transparent));
+}
+
+:where(.nt-painel) :where(h2, h3, p) {
+  margin: 0;
+}
+
+/* ---- topo ---- */
+
+.nt-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 16px 10px 20px;
+}
+
+.nt-titulo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.nt-titulo h2 {
+  font-size: 17px;
+  color: var(--nt-navy);
+}
+
+.nt-contagem {
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: #e4edfd;
+  color: #1b4fb3;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.nt-painel .nt-fechar {
+  --b: var(--nt-wash);
+  --bh: #e3ebfa;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--b);
+  color: #46547a;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+/* ---- abas ---- */
+
+.nt-barra {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px 12px 20px;
+  border-bottom: 1px solid var(--nt-line);
+}
+
+.nt-painel .nt-aba {
+  white-space: nowrap;
+  --b: transparent;
+  --bh: var(--nt-wash);
+  padding: 7px 13px;
+  border: none;
+  border-radius: 99px;
+  background: var(--b);
+  color: var(--nt-mute);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.nt-painel .nt-aba[aria-pressed="true"] {
+  --b: var(--nt-navy);
+  --bh: var(--nt-navy);
+  color: #fff;
+}
+
+.nt-painel .nt-todas {
+  --b: transparent;
+  --bh: var(--nt-wash);
+  margin-left: auto;
+  white-space: nowrap;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 10px;
+  background: var(--b);
+  color: var(--nt-blue);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.nt-painel button:focus-visible {
+  outline: 3px solid rgba(29, 91, 214, 0.45);
+  outline-offset: 2px;
+}
+
+/* ---- lista ---- */
+
+.nt-lista {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.nt-painel .nt-item {
+  --b: #fff;
+  --bh: var(--nt-wash);
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  width: 100%;
+  padding: 14px 18px 14px 20px;
+  border: none;
+  border-radius: 0;
+  background: var(--b);
+  cursor: pointer;
+  transition: background 0.18s ease;
+  animation: nt-item 0.3s ease both;
+  animation-delay: var(--nt-atraso, 0ms);
+}
+
+.nt-painel .nt-item[data-lida="false"] {
+  --b: #f3f7ff;
+  --bh: #e8f0fe;
+}
+
+.nt-item[data-lida="false"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--nt-cor, var(--nt-blue));
+}
+
+.nt-icone {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--nt-cor) 14%, #fff);
+  color: var(--nt-cor);
+  font-size: 16px;
+}
+
+.nt-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.nt-texto b {
+  display: block;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--nt-ink);
+}
+
+.nt-item[data-lida="true"] .nt-texto b {
+  font-weight: 600;
+  color: #3a4668;
+}
+
+.nt-texto p {
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #55627f;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.nt-texto small {
+  display: block;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: #8793ad;
+}
+
+.nt-ponto {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--nt-blue);
+}
+
+/* ---- vazio e carregando ---- */
+
+.nt-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 38px 28px 42px;
+  text-align: center;
+}
+
+.nt-vazio-icone {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 6px;
+  border-radius: 20px;
+  background: #e4edfd;
+  color: var(--nt-navy);
+  font-size: 24px;
+}
+
+.nt-vazio b {
+  font-size: 15px;
+}
+
+.nt-vazio p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--nt-mute);
+}
+
+.nt-esqueleto {
+  display: flex;
+  gap: 13px;
+  padding: 14px 20px;
+}
+
+.nt-esqueleto span {
+  display: block;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #eef2f9, #f7f9fd, #eef2f9);
+  background-size: 200% 100%;
+  animation: nt-brilho 1.2s linear infinite;
+}
+
+.nt-esqueleto span:first-child {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+}
+
+.nt-esqueleto span:last-child {
+  flex: 1;
+  height: 40px;
+}
+
+@keyframes nt-abre {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes nt-item {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes nt-brilho {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ---- sininho com contador ---- */
+
+.nt-sino {
+  position: relative;
+}
+
+.nt-sino[data-novas="true"] i {
+  animation: nt-balanca 2.6s ease 1s 2;
+  transform-origin: 50% 0;
+}
+
+@keyframes nt-balanca {
+  0%, 12%, 100% { transform: rotate(0); }
+  3% { transform: rotate(16deg); }
+  6% { transform: rotate(-14deg); }
+  9% { transform: rotate(8deg); }
+}
+
+@media (max-width: 520px) {
+  .nt-extra {
+    display: none;
+  }
+
+  .nt-painel {
+    top: 54px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nt-painel,
+  .nt-painel *,
+  .nt-sino i {
+    animation: none !important;
+    transition: none !important;
+  }
+}

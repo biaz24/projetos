@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import usuarioService from "./usuarioService.js";
+import connection from "../database/connection.js";
 import refreshTokenModel from "../models/refreshTokenModel.js";
 import {
   generateAccessToken,
@@ -7,10 +8,46 @@ import {
   verifyRefreshToken,
 } from "../config/token.js";
 
+export const MSG_CONTA_SUSPENSA =
+  "Esta conta foi suspensa pela moderação. Se acredita que foi um engano, entre em contato com o suporte.";
+
+export const MSG_EMAIL_NAO_CONFIRMADO =
+  "Confirme seu e-mail para entrar. Enviamos um link para a sua caixa de entrada.";
+
+// Hash de mentira, usado quando o e-mail não existe: o servidor gasta o mesmo tempo
+// conferindo a senha. Sem isso, "e-mail inexistente" responde bem mais rápido e
+// dá para descobrir quem tem conta medindo o tempo de resposta.
+let hashFalso = null;
+function obterHashFalso() {
+  hashFalso ??= bcrypt.hash("senha-que-nunca-sera-usada", 12);
+  return hashFalso;
+}
+
+// Gera o par de tokens e guarda o refresh token. Usado no login e na troca de senha.
+async function iniciarSessao(usuario) {
+  const payload = { id: usuario.ID, email: usuario.EMAIL, tipo: usuario.TIPO };
+
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+
+  await refreshTokenModel.salvarRefreshToken(usuario.ID, refreshToken, expiresAt);
+
+  return { accessToken, refreshToken };
+}
+
 async function login(email, senha) {
+  if (typeof senha !== "string" || senha.length === 0 || senha.length > 200) {
+    await bcrypt.compare("x", await obterHashFalso());
+    throw new Error("Credenciais inválidas");
+  }
+
   const usuario = await usuarioService.buscarUsuarioPorEmail(email);
 
   if (!usuario) {
+    await bcrypt.compare(senha, await obterHashFalso());
     throw new Error("Credenciais inválidas");
   }
 
@@ -20,19 +57,17 @@ async function login(email, senha) {
     throw new Error("Credenciais inválidas");
   }
 
-  const payload = { id: usuario.ID, email: usuario.EMAIL, tipo: usuario.TIPO };
+  // Só avisa que a conta está suspensa depois de a senha estar certa (não revela quem tem conta).
+  if (usuario.BANIDO_EM) {
+    throw new Error(MSG_CONTA_SUSPENSA);
+  }
 
-  const accessToken = generateAccessToken(payload);
-  const refreshToken = generateRefreshToken(payload);
+  // Conta nova só entra depois de clicar no link enviado por e-mail.
+  if (!usuario.EMAIL_CONFIRMADO_EM) {
+    throw new Error(MSG_EMAIL_NAO_CONFIRMADO);
+  }
 
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
-
-  await refreshTokenModel.salvarRefreshToken(
-    usuario.ID,
-    refreshToken,
-    expiresAt,
-  );
+  const { accessToken, refreshToken } = await iniciarSessao(usuario);
 
   return {
     accessToken,
@@ -92,14 +127,25 @@ async function refresh(oldToken) {
     throw new Error("Sessão revogada por motivos de segurança");
   }
 
+  // Conta banida ou apagada não renova sessão.
+  const [donos] = await connection.query(
+    "SELECT EMAIL, TIPO, BANIDO_EM FROM USUARIOS WHERE ID = ?",
+    [decoded.id],
+  );
+  if (donos.length === 0 || donos[0].BANIDO_EM) {
+    await refreshTokenModel.apagarTodosDoUsuario(decoded.id);
+    throw new Error("Sessão revogada por motivos de segurança");
+  }
+
   // 1. Remove o token antigo do banco (Token Rotation)
   await refreshTokenModel.apagarPorToken(oldToken);
 
   // 2. Gera novo par de tokens
+  // E-mail e tipo vêm do banco (podem ter mudado desde a emissão do token antigo).
   const payload = {
     id: decoded.id,
-    email: decoded.email,
-    tipo: decoded.tipo,
+    email: donos[0].EMAIL,
+    tipo: donos[0].TIPO,
   };
   const novoAccessToken = generateAccessToken(payload);
   const novoRefreshToken = generateRefreshToken(payload);
@@ -127,6 +173,7 @@ async function logout(token) {
 
 export default {
   login,
+  iniciarSessao,
   me,
   refresh,
   logout,

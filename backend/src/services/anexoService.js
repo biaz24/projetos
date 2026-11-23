@@ -18,6 +18,10 @@ async function criarAnexo(
   );
 }
 
+async function buscarPorNomeSalvo(nomeSalvo) {
+  return await anexoModel.buscarPorNomeSalvo(nomeSalvo);
+}
+
 async function listarAnexosPorIdeia(ideiaId) {
   return await anexoModel.listarAnexosPorIdeia(ideiaId);
 }
@@ -33,6 +37,7 @@ async function excluirAnexo(id) {
 export default {
   criarAnexo,
   listarAnexosPorIdeia,
+  buscarPorNomeSalvo,
   buscarAnexoPorId,
   excluirAnexo,
 };

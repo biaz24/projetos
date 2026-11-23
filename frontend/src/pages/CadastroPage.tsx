@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { ReenviarConfirmacao } from "../components/ReenviarConfirmacao";
 import "../../css/style.css";
 
 export const CadastroPage: React.FC = () => {
@@ -15,9 +16,10 @@ export const CadastroPage: React.FC = () => {
     isError: boolean;
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [aceito, setAceito] = useState(false);
+  const [enviadoPara, setEnviadoPara] = useState<string | null>(null);
 
-  const { cadastrar, login } = useAuth();
-  const navigate = useNavigate();
+  const { cadastrar } = useAuth();
 
   const nomeRef = useRef<HTMLInputElement>(null);
 
@@ -34,9 +36,25 @@ export const CadastroPage: React.FC = () => {
       return;
     }
 
-    if (senha.length < 6) {
+    // Mesma regra do backend (usuarioController e redefinição de senha)
+    const senhaForte =
+      senha.length >= 8 &&
+      senha.length <= 72 &&
+      /[A-Z]/.test(senha) &&
+      /[0-9]/.test(senha) &&
+      /[^A-Za-z0-9]/.test(senha);
+
+    if (!senhaForte) {
       setMessage({
-        text: "A senha deve ter no mínimo 6 caracteres!",
+        text: "A senha deve ter de 8 a 72 caracteres, com uma letra maiúscula, um número e um caractere especial.",
+        isError: true,
+      });
+      return;
+    }
+
+    if (!aceito) {
+      setMessage({
+        text: "Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.",
         isError: true,
       });
       return;
@@ -45,15 +63,9 @@ export const CadastroPage: React.FC = () => {
     setSubmitting(true);
 
     try {
-      await cadastrar(nome, email, senha);
-      await login(email, senha);
-      setMessage({
-        text: "Cadastro realizado com sucesso! Redirecionando...",
-        isError: false,
-      });
-      setTimeout(() => {
-        navigate("/home");
-      }, 400);
+      await cadastrar(nome, email, senha, aceito);
+      // Sem login automático: a conta só entra depois de confirmar o e-mail.
+      setEnviadoPara(email.trim().toLowerCase());
     } catch (err: any) {
       setMessage({
         text: err.message || "Erro ao realizar cadastro!",
@@ -86,7 +98,7 @@ export const CadastroPage: React.FC = () => {
 
           <img
             src="/img/imagem2.png"
-            alt="Imagem do sistema"
+            alt="" aria-hidden="true"
             className="imagem-login"
           />
         </div>
@@ -94,6 +106,21 @@ export const CadastroPage: React.FC = () => {
         {/* Lado direito */}
         <div className="right">
           <div className="card">
+            {enviadoPara ? (
+              <div style={{ textAlign: "center" }}>
+                <i className="fa-regular fa-envelope-open" style={{ fontSize: "44px", color: "#1e3a8a", marginBottom: "12px" }}></i>
+                <h2>Confira seu e-mail</h2>
+                <p>
+                  Enviamos um link de confirmação para <b>{enviadoPara}</b>. Clique nele para ativar sua conta
+                  (vale por 24 horas). Se não achar, olhe a caixa de spam.
+                </p>
+                <ReenviarConfirmacao email={enviadoPara} />
+                <div className="register" style={{ marginTop: "22px" }}>
+                  Já confirmou? <Link to="/">Faça login</Link>
+                </div>
+              </div>
+            ) : (
+            <>
             <h2>Crie sua conta</h2>
             <p>Preencha os dados para se cadastrar</p>
 
@@ -167,6 +194,24 @@ export const CadastroPage: React.FC = () => {
                 ></i>
               </div>
 
+              <label
+                htmlFor="aceite-termos"
+                style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.45, margin: "0 0 18px", cursor: "pointer", fontWeight: "normal" }}
+              >
+                <input
+                  id="aceite-termos"
+                  type="checkbox"
+                  checked={aceito}
+                  onChange={(e) => setAceito(e.target.checked)}
+                  style={{ width: "18px", height: "18px", flexShrink: 0, marginTop: "1px", cursor: "pointer" }}
+                />
+                <span>
+                  Li e aceito os{" "}
+                  <Link to="/termos" target="_blank" rel="noopener noreferrer">Termos de Uso</Link> e a{" "}
+                  <Link to="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</Link>.
+                </span>
+              </label>
+
               <button type="submit" disabled={submitting}>
                 {submitting ? "Cadastrando..." : "Cadastrar"}
               </button>
@@ -189,6 +234,8 @@ export const CadastroPage: React.FC = () => {
             <div className="register">
               Já tem uma conta? <Link to="/">Faça login</Link>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>

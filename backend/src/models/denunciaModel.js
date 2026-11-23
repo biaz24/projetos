@@ -1,5 +1,10 @@
 import connection from "../database/connection.js";
 import notificacaoModel from "./notificacaoModel.js";
+import {
+  notificacaoAdvertencia,
+  notificacaoIdeiaOcultada,
+  notificacaoIdeiaRemovida,
+} from "../utils/mensagensNotificacao.js";
 async function criarDenuncia(ideiaId, usuarioId, motivo, descricao) {
   // Busca dados completos da ideia e do autor para snapshot definitivo
   const [ideias] = await connection.query(
@@ -243,6 +248,7 @@ async function concluirAnalise(
      d.IDEIAS_ID,
      d.USUARIOS_ID,
      d.STATUS,
+     i.TITULO AS IDEIA_TITULO,
      i.USUARIOS_ID AS AUTOR_ID
    FROM DENUNCIAS d
    LEFT JOIN IDEIAS i ON d.IDEIAS_ID = i.ID
@@ -260,6 +266,16 @@ async function concluirAnalise(
     if (denuncia.STATUS === "Resolvida") {
       throw new Error("Esta denúncia já foi resolvida.");
     }
+
+    // Conflito de interesse: o administrador não decide sobre a própria ideia
+    if (adminId && Number(denuncia.AUTOR_ID) === Number(adminId)) {
+      const conflito = new Error(
+        "Você não pode analisar uma denúncia sobre a sua própria ideia. Peça a outro administrador.",
+      );
+      conflito.status = 403;
+      throw conflito;
+    }
+
     if (
       !denuncia.IDEIAS_ID &&
       (medidaAplicada === "Ocultar ideia" || medidaAplicada === "Excluir ideia")
@@ -298,13 +314,30 @@ async function concluirAnalise(
       [resultado, medidaAplicada, justificativa, adminId, denunciaId],
     );
 
-    // Apenas oculta a ideia
+    // Oculta a ideia, guarda o motivo (o autor vê em "Minhas ideias ocultadas") e avisa o autor
     if (medidaAplicada === "Ocultar ideia" && denuncia.IDEIAS_ID) {
-      await db.query(
-        `UPDATE IDEIAS
-         SET VISIBILIDADE = 'Oculta'
-         WHERE ID = ?`,
-        [denuncia.IDEIAS_ID],
+      try {
+        await db.query(
+          `UPDATE IDEIAS
+           SET VISIBILIDADE = 'Oculta', MOTIVO_MODERACAO = ?
+           WHERE ID = ?`,
+          [justificativa, denuncia.IDEIAS_ID],
+        );
+      } catch (erroMotivo) {
+        // Caso a coluna do motivo ainda não exista, oculta mesmo assim.
+        await db.query(
+          `UPDATE IDEIAS
+           SET VISIBILIDADE = 'Oculta'
+           WHERE ID = ?`,
+          [denuncia.IDEIAS_ID],
+        );
+      }
+
+      await notificacaoModel.criarSemFalhar(
+        denuncia.AUTOR_ID,
+        notificacaoIdeiaOcultada(denuncia.IDEIA_TITULO, justificativa),
+        denuncia.IDEIAS_ID,
+        db,
       );
     }
 
@@ -317,16 +350,11 @@ async function concluirAnalise(
         [denuncia.AUTOR_ID, denunciaId, adminId, justificativa],
       );
 
-      await db.query(
-        `INSERT INTO NOTIFICACOES
-      (USUARIOS_ID, TIPO, TITULO, MENSAGEM)
-     VALUES (?, ?, ?, ?)`,
-        [
-          denuncia.AUTOR_ID,
-          "ADVERTENCIA",
-          "Você recebeu uma advertência",
-          justificativa,
-        ],
+      await notificacaoModel.criarSemFalhar(
+        denuncia.AUTOR_ID,
+        notificacaoAdvertencia(denuncia.IDEIA_TITULO, justificativa),
+        denuncia.IDEIAS_ID,
+        db,
       );
     }
 
@@ -411,6 +439,14 @@ async function concluirAnalise(
       if (resultadoExclusao.affectedRows === 0) {
         throw new Error("Não foi possível excluir a ideia.");
       }
+
+      // A ideia deixou de existir: a notificação guarda o título e não aponta para ela.
+      await notificacaoModel.criarSemFalhar(
+        denuncia.AUTOR_ID,
+        notificacaoIdeiaRemovida(denuncia.IDEIA_TITULO, justificativa),
+        null,
+        db,
+      );
     }
 
     await db.commit();

@@ -37,9 +37,12 @@ async function listarComentariosPorIdeia(ideiasId) {
       c.PARENT_ID,
       c.COMENTARIOS,
       c.CREATED_AT,
-      u.NOME as NOME_AUTOR
+      u.NOME as NOME_AUTOR,
+      i.ANONIMO as IDEIA_ANONIMA,
+      i.USUARIOS_ID as IDEIA_USUARIO_ID
     FROM COMENTARIOS c
     JOIN USUARIOS u ON c.USUARIOS_ID = u.ID
+    JOIN IDEIAS i ON c.IDEIAS_ID = i.ID
     WHERE c.IDEIAS_ID = ?
     ORDER BY c.CREATED_AT ASC`,
     [ideiasId],

@@ -1,0 +1,71 @@
+/* Ajustes manuais do modo escuro (o resto é gerado em tema-escuro.css). */
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="file"]),
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  background-color: #1d2742;
+  color: #e4eafa;
+  border-color: #33426a;
+}
+
+html[data-theme="dark"] ::placeholder {
+  color: #7f8db0;
+}
+
+html[data-theme="dark"] ::selection {
+  background: #2d5bc4;
+  color: #fff;
+}
+
+/* fundo da página um degrau abaixo dos cartões; menu lateral bem escuro */
+html[data-theme="dark"] body,
+html[data-theme="dark"] .home-container,
+html[data-theme="dark"] .main-content {
+  background-color: #0e1424;
+}
+
+html[data-theme="dark"] .sidebar {
+  background-color: #0a1736;
+}
+
+html[data-theme="dark"] .topbar {
+  background-color: #121a2e;
+}
+
+/* painel de notificações */
+html[data-theme="dark"] .nt-painel .nt-topo h2 {
+  color: #e6edff;
+}
+
+html[data-theme="dark"] .nt-painel .nt-item[data-lida="false"] {
+  --b: #1a2a55;
+  --bh: #213566;
+}
+
+html[data-theme="dark"] .nt-painel .nt-todas,
+html[data-theme="dark"] .nt-painel .nt-contagem {
+  color: #8fb2ff;
+}
+
+html[data-theme="dark"] .nt-painel .nt-contagem {
+  background-color: #22346a;
+}
+
+/* campos com ícone (login/cadastro): o fundo é da caixa, não do input */
+html[data-theme="dark"] .input-box input {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+html[data-theme="dark"] .input-box {
+  background-color: #1d2742;
+}
+
+/* ilustrações têm fundo branco: suaviza para não "acender" a tela escura */
+html[data-theme="dark"] .auth-page-wrapper img {
+  filter: brightness(0.88);
+}

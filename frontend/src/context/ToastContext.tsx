@@ -1,4 +1,15 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
+import "./Toast.css";
 
 export type ToastType = "success" | "error" | "info";
 
@@ -6,99 +17,91 @@ interface Toast {
   id: number;
   type: ToastType;
   message: string;
+  saindo: boolean;
 }
 
 interface ToastContextData {
   showToast: (message: string, type?: ToastType) => void;
 }
 
+const DURACAO_MS = 4000;
+const SAIDA_MS = 220;
+
+const ICONES: Record<ToastType, string> = {
+  success: "fa-circle-check",
+  error: "fa-circle-xmark",
+  info: "fa-circle-info",
+};
+
 const ToastContext = createContext<ToastContextData>({} as ToastContextData);
 
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const proximoId = useRef(1);
+  const timers = useRef<number[]>([]);
 
-  const showToast = (message: string, type: ToastType = "success") => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, type, message }]);
+  useEffect(() => {
+    const lista = timers.current;
+    return () => lista.forEach((t) => window.clearTimeout(t));
+  }, []);
 
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
-  };
+  const removeToast = useCallback((id: number) => {
+    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, saindo: true } : t)));
 
-  const removeToast = (id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+    timers.current.push(
+      window.setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, SAIDA_MS),
+    );
+  }, []);
+
+  const showToast = useCallback(
+    (message: string, type: ToastType = "success") => {
+      const id = proximoId.current++;
+      setToasts((prev) => [...prev.slice(-3), { id, type, message, saindo: false }]);
+
+      timers.current.push(window.setTimeout(() => removeToast(id), DURACAO_MS));
+    },
+    [removeToast],
+  );
+
+  const valor = useMemo(() => ({ showToast }), [showToast]);
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={valor}>
       {children}
 
-      {/* Container de Toasts Flutuantes */}
-      <div
-        style={{
-          position: "fixed",
-          top: "20px",
-          right: "20px",
-          zIndex: 9999,
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          maxWidth: "360px",
-          width: "100%",
-          pointerEvents: "none",
-        }}
-      >
-        {toasts.map((toast) => {
-          let bg = "#10b981"; // success
-          let icon = "fa-solid fa-circle-check";
-          if (toast.type === "error") {
-            bg = "#ef4444";
-            icon = "fa-solid fa-circle-xmark";
-          } else if (toast.type === "info") {
-            bg = "#3b82f6";
-            icon = "fa-solid fa-circle-info";
-          }
-
-          return (
+      {createPortal(
+        <div className="tt-pilha" aria-live="polite" aria-atomic="false">
+          {toasts.map((toast) => (
             <div
               key={toast.id}
-              style={{
-                pointerEvents: "auto",
-                background: bg,
-                color: "white",
-                padding: "12px 16px",
-                borderRadius: "8px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "12px",
-                fontSize: "12px",
-                fontWeight: "bold",
-                animation: "fadeIn 0.3s ease",
-              }}
+              className="tt-aviso"
+              data-tipo={toast.type}
+              data-saindo={toast.saindo}
+              role={toast.type === "error" ? "alert" : "status"}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <i className={icon} style={{ fontSize: "16px" }}></i>
-                <span>{toast.message}</span>
-              </div>
+              <span className="tt-icone" aria-hidden="true">
+                <i className={`fa-solid ${ICONES[toast.type]}`}></i>
+              </span>
+
+              <p className="tt-texto">{toast.message}</p>
+
               <button
+                type="button"
+                className="tt-fechar"
                 onClick={() => removeToast(toast.id)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "white",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                }}
+                aria-label="Fechar aviso"
               >
-                <i className="fa-solid fa-xmark"></i>
+                <i className="fa-solid fa-xmark" aria-hidden="true"></i>
               </button>
+
+              <span className="tt-barra" aria-hidden="true"></span>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>,
+        document.body,
+      )}
     </ToastContext.Provider>
   );
 };

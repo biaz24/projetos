@@ -1,0 +1,53 @@
+/* ==========================================================================
+   Transição entre páginas (simples)
+   Só o conteúdo aparece com um fade curtinho subindo um pouco.
+   O menu lateral e a barra de cima ficam parados, então a linha do
+   cabeçalho não passa por cima de nada.
+   Este arquivo vem depois do home.css e sobrepõe a animação antiga.
+   ========================================================================== */
+
+.home-container .sidebar,
+.home-container .topbar {
+  animation: none;
+}
+
+/* A barra de cima fica sempre acima do conteúdo */
+.home-container .topbar {
+  position: relative;
+  z-index: 5;
+  background: #fff;
+}
+
+.home-container .content {
+  animation: conteudo-entra 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes conteudo-entra {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-container .content {
+    animation: none;
+  }
+}
+
+/* Celular: o menu lateral fica escondido fora da tela. A sombra dele
+   aparecia como uma faixa cinza na borda esquerda. Só tem sombra quando aberto. */
+@media (max-width: 768px) {
+  .home-container .sidebar {
+    box-shadow: none;
+  }
+
+  .home-container .sidebar.mobile-active {
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2);
+  }
+}

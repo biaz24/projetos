@@ -1,4 +1,5 @@
 import notificacaoService from "../services/notificacaoService.js";
+import { idPositivo } from "../utils/validacao.js";
 
 async function listarNotificacoes(req, res) {
   try {
@@ -37,7 +38,7 @@ async function contarNaoLidas(req, res) {
 async function marcarComoLida(req, res) {
   try {
     const usuarioId = req.user.id;
-    const { id } = req.params;
+    const id = idPositivo(req.params.id);
 
     if (!id) {
       return res.status(400).json({

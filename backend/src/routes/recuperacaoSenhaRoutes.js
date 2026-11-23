@@ -1,12 +1,13 @@
 import { Router } from "express";
 import recuperacaoSenhaController from "../controllers/recuperacaoSenhaController.js";
-import { recuperacaoSenhaLimiter } from "../middlewares/rateLimiter.js";
+import { recuperacaoSenhaLimiter, recuperacaoPorEmailLimiter } from "../middlewares/rateLimiter.js";
 
 const router = Router();
 
 router.post(
   "/esqueci-senha",
   recuperacaoSenhaLimiter,
+  recuperacaoPorEmailLimiter,
   recuperacaoSenhaController.solicitarRecuperacao,
 );
 

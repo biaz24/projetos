@@ -1,14 +1,22 @@
 import { Router } from "express";
 import usuarioController from "../controllers/usuarioController.js";
 import autenticarToken from "../middlewares/authMiddleware.js";
-import { cadastroLimiter } from "../middlewares/rateLimiter.js";
+import verificarAdmin from "../middlewares/adminMiddleware.js";
+import { cadastroLimiter, trocaSenhaLimiter } from "../middlewares/rateLimiter.js";
 
 const router = Router();
 
 router.post("/usuarios", cadastroLimiter, usuarioController.cadastrarUsuario);
+router.put("/usuarios/me/senha", autenticarToken, trocaSenhaLimiter, usuarioController.trocarSenha);
 router.get("/usuarios/me/stats", autenticarToken, usuarioController.obterEstatisticasMeuPerfil);
 
-router.get("/usuarios", autenticarToken, usuarioController.listarUsuarios);
+// A lista completa de usuários (com e-mails) é só para administradores.
+router.get(
+  "/usuarios",
+  autenticarToken,
+  verificarAdmin,
+  usuarioController.listarUsuarios,
+);
 router.get(
   "/usuarios/:id",
   autenticarToken,

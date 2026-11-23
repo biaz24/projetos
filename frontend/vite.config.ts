@@ -46,6 +46,33 @@ export default defineConfig({
         changeOrigin: true,
       },
 
+      "/contatos": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+
+      "/notificacoes": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+
+      "/admin": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        bypass(req) {
+          // Ao recarregar a página /admin/denuncias no navegador, quem responde
+          // é o React (index.html); só as chamadas da API vão para o backend.
+          if (req.headers.accept?.includes("text/html")) {
+            return "/index.html";
+          }
+        },
+      },
+
+      "/uploads": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+
       "/esqueci-senha": {
         target: "http://localhost:3000",
         changeOrigin: true,

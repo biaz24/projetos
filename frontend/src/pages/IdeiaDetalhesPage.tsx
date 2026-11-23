@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
 import { EmptyState } from "../components/EmptyState";
 import { fetchApi } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import { Ideia, Comentario } from "../types";
+import { Ideia, Comentario, Contato } from "../types";
 import { useRef } from "react";
+import { useDestaque } from "../utils/destaque";
+import { DenunciarIdeiaModal } from "../components/DenunciarIdeiaModal";
 
 const CATEGORIES_OPTIONS = [
   "Tecnologia",
@@ -57,14 +59,19 @@ const STATUS_MAP: Record<string, { bg: string; color: string; icon: string }> =
 export const IdeiaDetalhesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { showToast } = useToast();
 
   const visualizacaoRegistrada = useRef<string | null>(null);
 
   const [ideia, setIdeia] = useState<Ideia | null>(null);
+  const [reenviando, setReenviando] = useState(false);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Vindo do sininho: o cartão da ideia pisca quando ela carregar
+  useDestaque(!loading && Boolean(ideia));
   const [error, setError] = useState<string | null>(null);
 
   const [curtido, setCurtido] = useState(false);
@@ -78,9 +85,12 @@ export const IdeiaDetalhesPage: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
+  // Pedido de contato do usuário logado para esta ideia (null = ainda não pediu)
+  const [meuContato, setMeuContato] = useState<Contato | null>(null);
+  const [mensagemContato, setMensagemContato] = useState("");
+  const [enviandoContato, setEnviandoContato] = useState(false);
+
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [reportMotivo, setReportMotivo] = useState("");
-  const [reportDescricao, setReportDescricao] = useState("");
   const [sendingReport, setSendingReport] = useState(false);
 
   // Formulário Edição de Ideia
@@ -197,6 +207,66 @@ export const IdeiaDetalhesPage: React.FC = () => {
     carregarCurtida();
   }, [id]);
 
+  // Verifica se já existe um pedido de contato meu para esta ideia
+  const ideiaCarregadaId = ideia?.ID;
+  const ideiaCarregadaDoUsuario = ideia?.USUARIOS_ID;
+  const usuarioLogadoId = user?.id;
+
+  useEffect(() => {
+    if (!ideiaCarregadaId || usuarioLogadoId === undefined) return undefined;
+
+    // O autor não pede contato para a própria ideia
+    if (Number(ideiaCarregadaDoUsuario) === Number(usuarioLogadoId)) {
+      setMeuContato(null);
+      return undefined;
+    }
+
+    let ativo = true;
+
+    fetchApi<{ contato: Contato | null }>(`/ideias/${ideiaCarregadaId}/meu-contato`)
+      .then((resposta) => {
+        if (ativo) setMeuContato(resposta.contato);
+      })
+      .catch(() => {
+        if (ativo) setMeuContato(null);
+      });
+
+    return () => {
+      ativo = false;
+    };
+  }, [ideiaCarregadaId, ideiaCarregadaDoUsuario, usuarioLogadoId]);
+
+  const handleEnviarPedidoContato = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ideia || enviandoContato) return;
+
+    const texto = mensagemContato.trim();
+
+    if (texto.length < 5) {
+      showToast("Escreva uma mensagem para o autor (mínimo 5 caracteres).", "error");
+      return;
+    }
+
+    try {
+      setEnviandoContato(true);
+      const resposta = await fetchApi<{ mensagem: string }>("/contatos", {
+        method: "POST",
+        body: JSON.stringify({ ideiaId: ideia.ID, mensagem: texto }),
+      });
+      showToast(resposta.mensagem, "success");
+      setMensagemContato("");
+
+      const atual = await fetchApi<{ contato: Contato | null }>(
+        `/ideias/${ideia.ID}/meu-contato`,
+      );
+      setMeuContato(atual.contato);
+    } catch (err: any) {
+      showToast(err.message || "Erro ao enviar o pedido", "error");
+    } finally {
+      setEnviandoContato(false);
+    }
+  };
+
   // Edição da Ideia
   const handleOpenEditIdeaModal = () => {
     if (!ideia) return;
@@ -206,6 +276,43 @@ export const IdeiaDetalhesPage: React.FC = () => {
     setEditStatus(ideia.STATUS || "Disponível");
     setEditAnonimo(Boolean(ideia.ANONIMO));
     setIsEditIdeaModalOpen(true);
+  };
+
+  // Vindo de "Meu perfil > Reformular": abre direto a edição da ideia oculta
+  useEffect(() => {
+    if (searchParams.get("reformular") !== "1") return;
+    if (!ideia || !user) return;
+
+    const ehAutor = Number(ideia.USUARIOS_ID) === Number(user.id);
+
+    if (ehAutor && ideia.VISIBILIDADE === "Oculta") {
+      setEditTitulo(ideia.TITULO);
+      setEditDescricao(ideia.DESCRICAO);
+      setEditCategoria(ideia.CATEGORIA || "Geral");
+      setEditStatus(ideia.STATUS || "Disponível");
+      setEditAnonimo(Boolean(ideia.ANONIMO));
+      setIsEditIdeaModalOpen(true);
+    }
+
+    // Limpa o parâmetro para o modal não reabrir ao recarregar
+    setSearchParams({}, { replace: true });
+  }, [ideia, user, searchParams, setSearchParams]);
+
+  const handleReenviarIdeia = async () => {
+    if (!ideia) return;
+
+    try {
+      setReenviando(true);
+      await fetchApi(`/ideias/${ideia.ID}/reenviar`, { method: "POST" });
+      setIdeia((anterior) =>
+        anterior ? { ...anterior, VISIBILIDADE: "EmRevisao" } : anterior,
+      );
+      showToast("Ideia reenviada! Aguarde a decisão da moderação.", "success");
+    } catch (err: any) {
+      showToast(err.message || "Erro ao reenviar a ideia", "error");
+    } finally {
+      setReenviando(false);
+    }
   };
 
   const handleSaveEditIdea = async (e: React.FormEvent) => {
@@ -262,10 +369,8 @@ export const IdeiaDetalhesPage: React.FC = () => {
     }
   };
 
-  const handleEnviarDenuncia = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!ideia || !reportMotivo || sendingReport) return;
+  const handleEnviarDenuncia = async (motivo: string, descricao: string) => {
+    if (!ideia || !motivo || sendingReport) return;
 
     setSendingReport(true);
 
@@ -274,14 +379,12 @@ export const IdeiaDetalhesPage: React.FC = () => {
         method: "POST",
         body: JSON.stringify({
           ideiaId: ideia.ID,
-          motivo: reportMotivo,
-          descricao: reportDescricao.trim() || null,
+          motivo,
+          descricao: descricao.trim() || null,
         }),
       });
 
       setIsReportModalOpen(false);
-      setReportMotivo("");
-      setReportDescricao("");
 
       showToast("Denúncia enviada com sucesso!", "success");
     } catch (err: any) {
@@ -429,8 +532,91 @@ export const IdeiaDetalhesPage: React.FC = () => {
           />
         ) : (
           <div>
+            {/* Aviso de moderação: só o autor vê (e o admin ao abrir a ideia) */}
+            {isIdeaOwner &&
+              (ideia.VISIBILIDADE === "Oculta" ||
+                ideia.VISIBILIDADE === "EmRevisao") && (
+                <div
+                  style={{
+                    background:
+                      ideia.VISIBILIDADE === "EmRevisao" ? "#eff6ff" : "#fffbeb",
+                    border: `1px solid ${
+                      ideia.VISIBILIDADE === "EmRevisao" ? "#bfdbfe" : "#fcd34d"
+                    }`,
+                    borderRadius: "12px",
+                    padding: "16px 18px",
+                    marginBottom: "16px",
+                    fontSize: "13px",
+                    color: "#334155",
+                  }}
+                >
+                  {ideia.VISIBILIDADE === "EmRevisao" ? (
+                    <strong>
+                      Esta ideia foi reenviada e está aguardando a aprovação da
+                      moderação.
+                    </strong>
+                  ) : (
+                    <>
+                      <strong>
+                        Esta ideia está oculta e não aparece para outras
+                        pessoas.
+                      </strong>
+
+                      {ideia.MOTIVO_MODERACAO && (
+                        <p style={{ margin: "8px 0 0", overflowWrap: "anywhere" }}>
+                          Motivo da moderação: {ideia.MOTIVO_MODERACAO}
+                        </p>
+                      )}
+
+                      <p style={{ margin: "8px 0 12px" }}>
+                        Ajuste o conteúdo para adequá-lo às regras da plataforma
+                        e reenvie para revisão.
+                      </p>
+
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          onClick={handleOpenEditIdeaModal}
+                          style={{
+                            padding: "8px 14px",
+                            border: "none",
+                            borderRadius: "8px",
+                            background: "#07327c",
+                            color: "white",
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Reformular ideia
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleReenviarIdeia}
+                          disabled={reenviando}
+                          style={{
+                            padding: "8px 14px",
+                            border: "1px solid #166534",
+                            borderRadius: "8px",
+                            background: "white",
+                            color: "#166534",
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {reenviando ? "Reenviando..." : "Reenviar para revisão"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
             {/* Card Principal da Ideia */}
             <div
+              data-destaque="ideia"
               style={{
                 background: "white",
                 borderRadius: "14px",
@@ -466,7 +652,7 @@ export const IdeiaDetalhesPage: React.FC = () => {
                   <i className={categoryConfig.icon}></i>
                 </div>
 
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
                       display: "flex",
@@ -476,7 +662,7 @@ export const IdeiaDetalhesPage: React.FC = () => {
                       flexWrap: "wrap",
                     }}
                   >
-                    <div>
+                    <div style={{ minWidth: 0, flex: "1 1 240px" }}>
                       <div
                         style={{
                           display: "flex",
@@ -492,6 +678,7 @@ export const IdeiaDetalhesPage: React.FC = () => {
                             fontWeight: "bold",
                             color: "#1e3a8a",
                             margin: 0,
+                            overflowWrap: "anywhere",
                           }}
                         >
                           {ideia.TITULO}
@@ -533,12 +720,14 @@ export const IdeiaDetalhesPage: React.FC = () => {
                     </div>
 
                     {/* Ações de Edição e Exclusão para o Autor da Ideia */}
-                    <div style={{ display: "flex", gap: "10px" }}>
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                       {!isIdeaOwner && (
                         <>
                           <button
                             onClick={() => setIsContactModalOpen(true)}
                             style={{
+                              width: "auto",
+                              height: "auto",
                               background: "#07327c",
                               color: "white",
                               border: "none",
@@ -559,6 +748,8 @@ export const IdeiaDetalhesPage: React.FC = () => {
                           <button
                             onClick={() => setIsReportModalOpen(true)}
                             style={{
+                              width: "auto",
+                              height: "auto",
                               background: "#fef2f2",
                               color: "#dc2626",
                               border: "1px solid #fecaca",
@@ -582,7 +773,15 @@ export const IdeiaDetalhesPage: React.FC = () => {
                         <>
                           <button
                             onClick={handleOpenEditIdeaModal}
+                            disabled={ideia.VISIBILIDADE === "EmRevisao"}
+                            title={
+                              ideia.VISIBILIDADE === "EmRevisao"
+                                ? "Não é possível editar enquanto a ideia está em revisão"
+                                : undefined
+                            }
                             style={{
+                              width: "auto",
+                              height: "auto",
                               background: "#f1f5f9",
                               color: "#1e3a8a",
                               border: "1px solid #cbd5e1",
@@ -603,6 +802,8 @@ export const IdeiaDetalhesPage: React.FC = () => {
                           <button
                             onClick={() => setIsDeleteModalOpen(true)}
                             style={{
+                              width: "auto",
+                              height: "auto",
                               background: "#fef2f2",
                               color: "#ef4444",
                               border: "1px solid #fecaca",
@@ -722,7 +923,7 @@ export const IdeiaDetalhesPage: React.FC = () => {
                     {anexos.map((anexo) => (
                       <a
                         key={anexo.ID}
-                        href={`http://localhost:3000/${anexo.CAMINHO}`}
+                        href={`/${anexo.CAMINHO}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -778,7 +979,7 @@ export const IdeiaDetalhesPage: React.FC = () => {
                 }}
               >
                 <div
-                  style={{ display: "flex", gap: "20px", alignItems: "center" }}
+                  style={{ display: "flex", gap: "12px 20px", alignItems: "center", flexWrap: "wrap" }}
                 >
                   <div
                     style={{
@@ -826,6 +1027,8 @@ export const IdeiaDetalhesPage: React.FC = () => {
                     onClick={handleToggleCurtida}
                     disabled={carregandoCurtida}
                     style={{
+                  width: "auto",
+                  height: "auto",
                       display: "flex",
                       alignItems: "center",
                       gap: "8px",
@@ -950,6 +1153,8 @@ export const IdeiaDetalhesPage: React.FC = () => {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: "10px",
+                                marginLeft: "auto",
+                                flexShrink: 0,
                               }}
                             >
                               <button
@@ -960,6 +1165,10 @@ export const IdeiaDetalhesPage: React.FC = () => {
                                   )
                                 }
                                 style={{
+                  width: "auto",
+                  height: "auto",
+                                  padding: "4px",
+                                  margin: 0,
                                   background: "none",
                                   border: "none",
                                   color: "#07327c",
@@ -976,6 +1185,10 @@ export const IdeiaDetalhesPage: React.FC = () => {
                                   type="button"
                                   onClick={() => handleStartEditComment(c)}
                                   style={{
+                  width: "auto",
+                  height: "auto",
+                                    padding: "4px",
+                                    margin: 0,
                                     background: "none",
                                     border: "none",
                                     color: "#2563eb",
@@ -993,6 +1206,10 @@ export const IdeiaDetalhesPage: React.FC = () => {
                                   onClick={() => handleDeleteComment(c.ID)}
                                   disabled={isDeletingThis}
                                   style={{
+                  width: "auto",
+                  height: "auto",
+                                    padding: "4px",
+                                    margin: 0,
                                     background: "none",
                                     border: "none",
                                     color: "#ef4444",
@@ -1045,6 +1262,8 @@ export const IdeiaDetalhesPage: React.FC = () => {
                                   type="button"
                                   onClick={() => handleSaveEditComment(c.ID)}
                                   style={{
+                  width: "auto",
+                  height: "auto",
                                     background: "#07327c",
                                     color: "white",
                                     borderRadius: "4px",
@@ -1127,6 +1346,10 @@ export const IdeiaDetalhesPage: React.FC = () => {
                                         }
                                         disabled={isDeletingReply}
                                         style={{
+                                          width: "auto",
+                                          height: "auto",
+                                          padding: "4px",
+                                          margin: 0,
                                           background: "none",
                                           border: "none",
                                           color: "#ef4444",
@@ -1249,6 +1472,9 @@ export const IdeiaDetalhesPage: React.FC = () => {
       {/* Modal de Editar Ideia */}
       {isEditIdeaModalOpen && (
         <div
+          role="dialog"
+          aria-modal="true"
+          data-esc="global"
           style={{
             position: "fixed",
             top: 0,
@@ -1434,6 +1660,9 @@ export const IdeiaDetalhesPage: React.FC = () => {
       {/* Modal de Confirmação de Exclusão de Ideia */}
       {isDeleteModalOpen && (
         <div
+          role="dialog"
+          aria-modal="true"
+          data-esc="global"
           style={{
             position: "fixed",
             top: 0,
@@ -1518,9 +1747,12 @@ export const IdeiaDetalhesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de Contato / Adotar Ideia */}
+      {/* Modal de Contato / Adotar Ideia: pedido ao autor + chat privado */}
       {isContactModalOpen && ideia && (
         <div
+          role="dialog"
+          aria-modal="true"
+          data-esc="global"
           style={{
             position: "fixed",
             top: 0,
@@ -1540,8 +1772,11 @@ export const IdeiaDetalhesPage: React.FC = () => {
               background: "white",
               borderRadius: "14px",
               padding: "24px",
-              maxWidth: "450px",
+              maxWidth: "480px",
               width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              boxSizing: "border-box",
             }}
           >
             <div
@@ -1553,10 +1788,12 @@ export const IdeiaDetalhesPage: React.FC = () => {
               }}
             >
               <h3 style={{ fontSize: "16px", color: "#1e3a8a", margin: 0 }}>
-                Adotar Ideia / Contatar Autor
+                Adotar ideia / Contatar autor
               </h3>
               <button
+                type="button"
                 onClick={() => setIsContactModalOpen(false)}
+                aria-label="Fechar"
                 style={{
                   background: "none",
                   border: "none",
@@ -1568,91 +1805,133 @@ export const IdeiaDetalhesPage: React.FC = () => {
               </button>
             </div>
 
-            {ideia.ANONIMO ? (
-              <p
-                style={{
-                  fontSize: "13px",
-                  color: "#64748b",
-                  lineHeight: "1.5",
-                }}
-              >
-                Esta ideia foi publicada de forma <strong>Anônima</strong>.
-                Deixe um comentário na publicação para demonstrar seu interesse
-                em colaborar!
-              </p>
-            ) : (
+            {meuContato ? (
               <div>
+                <p style={{ fontSize: "13px", color: "#334155", lineHeight: 1.5 }}>
+                  {meuContato.STATUS === "Pendente" &&
+                    "Seu pedido foi enviado. Você será avisado pelo sininho quando o autor responder."}
+                  {meuContato.STATUS === "Aceito" &&
+                    "O autor aceitou! A conversa privada já está aberta."}
+                  {meuContato.STATUS === "Recusado" &&
+                    "O autor não pode conversar sobre esta ideia agora."}
+                  {meuContato.STATUS === "Encerrado" &&
+                    "A conversa sobre esta ideia foi encerrada."}
+                </p>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/conversas?abrir=${meuContato.ID}`)}
+                    style={{
+                      background: "#07327c",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "8px 16px",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Abrir conversa
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleEnviarPedidoContato}>
                 <p
                   style={{
                     fontSize: "13px",
                     color: "#334155",
-                    marginBottom: "14px",
-                    lineHeight: "1.5",
+                    marginTop: 0,
+                    lineHeight: 1.5,
                   }}
                 >
-                  Você está demonstrando interesse em desenvolver ou colaborar
-                  no projeto <strong>{ideia.TITULO}</strong>.
+                  Conte ao autor por que você quer desenvolver ou colaborar com
+                  esta ideia. Se ele aceitar, vocês conversam por um chat
+                  privado aqui no site.
+                  {ideia.ANONIMO ? (
+                    <>
+                      {" "}
+                      Esta ideia foi publicada de forma <strong>anônima</strong>
+                      : o autor continuará anônimo para você.
+                    </>
+                  ) : null}
                 </p>
+
+                <label
+                  htmlFor="mensagem-contato"
+                  style={{
+                    display: "block",
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    color: "#1e3a8a",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Sua mensagem
+                </label>
+                <textarea
+                  id="mensagem-contato"
+                  value={mensagemContato}
+                  onChange={(e) => setMensagemContato(e.target.value)}
+                  maxLength={1000}
+                  rows={5}
+                  placeholder="Ex.: Tenho experiência com isso e gostaria de transformar a ideia em projeto."
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "8px",
+                    boxSizing: "border-box",
+                    fontFamily: "inherit",
+                    resize: "vertical",
+                  }}
+                />
                 <div
                   style={{
-                    background: "#f8fafc",
-                    padding: "12px",
-                    borderRadius: "8px",
-                    marginBottom: "16px",
-                    border: "1px solid #e2e8f0",
+                    fontSize: "11px",
+                    color: "#94a3b8",
+                    textAlign: "right",
+                    marginBottom: "10px",
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: "#64748b",
-                      display: "block",
-                    }}
-                  >
-                    Autor da Ideia:
-                  </span>
-                  <strong style={{ fontSize: "13px", color: "#1e3a8a" }}>
-                    {ideia.NOME_AUTOR}
-                  </strong>
-                  {ideia.EMAIL_AUTOR && (
-                    <span
-                      style={{
-                        fontSize: "12px",
-                        color: "#475569",
-                        display: "block",
-                        marginTop: "2px",
-                      }}
-                    >
-                      E-mail: {ideia.EMAIL_AUTOR}
-                    </span>
-                  )}
+                  {mensagemContato.length}/1000
                 </div>
 
-                <div
+                <p
                   style={{
-                    display: "flex",
-                    gap: "10px",
-                    justifyContent: "flex-end",
+                    fontSize: "11px",
+                    color: "#92400e",
+                    background: "#fffbeb",
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    margin: "0 0 14px",
                   }}
                 >
-                  {ideia.EMAIL_AUTOR && (
-                    <a
-                      href={`mailto:${ideia.EMAIL_AUTOR}?subject=Interesse na Ideia: ${encodeURIComponent(ideia.TITULO)}`}
-                      style={{
-                        background: "#07327c",
-                        color: "white",
-                        padding: "8px 16px",
-                        borderRadius: "6px",
-                        textDecoration: "none",
-                        fontSize: "12px",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Enviar E-mail ao Autor
-                    </a>
-                  )}
+                  Nunca envie senhas, códigos ou dinheiro. A moderação só lê a
+                  conversa se alguém a denunciar.
+                </p>
+
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button
+                    type="submit"
+                    disabled={enviandoContato}
+                    style={{
+                      background: "#07327c",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "8px 16px",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {enviandoContato ? "Enviando..." : "Enviar pedido"}
+                  </button>
                 </div>
-              </div>
+              </form>
             )}
           </div>
         </div>
@@ -1660,200 +1939,12 @@ export const IdeiaDetalhesPage: React.FC = () => {
 
       {/* Modal de Denúncia */}
       {isReportModalOpen && ideia && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 200,
-            padding: "20px",
-          }}
-        >
-          <div
-            style={{
-              background: "white",
-              borderRadius: "14px",
-              padding: "24px",
-              maxWidth: "450px",
-              width: "100%",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "16px",
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: "16px",
-                  color: "#dc2626",
-                  margin: 0,
-                }}
-              >
-                <i
-                  className="fa-solid fa-flag"
-                  style={{ marginRight: "8px" }}
-                ></i>
-                Denunciar ideia
-              </h3>
-
-              <button
-                type="button"
-                onClick={() => setIsReportModalOpen(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "16px",
-                  cursor: "pointer",
-                  color: "#64748b",
-                }}
-              >
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            </div>
-
-            <p
-              style={{
-                fontSize: "12px",
-                color: "#64748b",
-                lineHeight: "1.5",
-                marginBottom: "16px",
-              }}
-            >
-              Selecione o motivo pelo qual você está denunciando esta ideia.
-            </p>
-
-            <form
-              onSubmit={handleEnviarDenuncia}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                    display: "block",
-                    marginBottom: "5px",
-                    color: "#334155",
-                  }}
-                >
-                  Motivo *
-                </label>
-
-                <select
-                  value={reportMotivo}
-                  onChange={(e) => setReportMotivo(e.target.value)}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "6px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "12px",
-                  }}
-                >
-                  <option value="">Selecione um motivo</option>
-                  <option value="Conteúdo inadequado">
-                    Conteúdo inadequado
-                  </option>
-                  <option value="Spam">Spam</option>
-                  <option value="Conteúdo ofensivo">Conteúdo ofensivo</option>
-                  <option value="Informação enganosa">
-                    Informação enganosa
-                  </option>
-                  <option value="Violação das regras">
-                    Violação das regras
-                  </option>
-                  <option value="Outro">Outro</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                    display: "block",
-                    marginBottom: "5px",
-                    color: "#334155",
-                  }}
-                >
-                  Descrição
-                </label>
-
-                <textarea
-                  value={reportDescricao}
-                  onChange={(e) => setReportDescricao(e.target.value)}
-                  placeholder="Explique brevemente o motivo da denúncia..."
-                  rows={4}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "6px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "12px",
-                    fontFamily: "inherit",
-                    resize: "vertical",
-                  }}
-                />
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "10px",
-                  marginTop: "4px",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setIsReportModalOpen(false)}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: "6px",
-                    border: "none",
-                    background: "#f1f5f9",
-                    color: "#334155",
-                    cursor: "pointer",
-                  }}
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={sendingReport}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: "6px",
-                    border: "none",
-                    background: "#dc2626",
-                    color: "white",
-                    fontWeight: "bold",
-                    cursor: sendingReport ? "default" : "pointer",
-                    opacity: sendingReport ? 0.7 : 1,
-                  }}
-                >
-                  {sendingReport ? "Enviando..." : "Enviar denúncia"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <DenunciarIdeiaModal
+          tituloIdeia={ideia.TITULO}
+          enviando={sendingReport}
+          aoFechar={() => setIsReportModalOpen(false)}
+          aoEnviar={handleEnviarDenuncia}
+        />
       )}
     </AppLayout>
   );

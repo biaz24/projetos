@@ -84,7 +84,10 @@ export async function fetchApi<T>(
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.erro || "Ocorreu um erro no servidor.");
+    // "codigo" (quando existe) deixa a tela reagir a um erro específico, ex.: EMAIL_NAO_CONFIRMADO
+    const erro = new Error(data.erro || "Ocorreu um erro no servidor.") as Error & { codigo?: string };
+    erro.codigo = data.codigo;
+    throw erro;
   }
 
   return data as T;

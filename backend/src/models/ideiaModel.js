@@ -31,7 +31,9 @@ async function listarIdeias({
 
   if (search && search.trim()) {
     whereClauses.push("(i.TITULO LIKE ? OR i.DESCRICAO LIKE ?)");
-    params.push(`%${search.trim()}%`, `%${search.trim()}%`);
+    // % e _ digitados pelo usuário não podem virar curinga da busca.
+    const termo = search.trim().replace(/[\\%_]/g, "\\$&");
+    params.push(`%${termo}%`, `%${termo}%`);
   }
 
   if (categoria && categoria.trim() && categoria !== "Todas") {
@@ -97,6 +99,8 @@ async function buscarIdeiaPorId(id) {
       COALESCE(i.CATEGORIA, 'Geral') as CATEGORIA,
       COALESCE(i.STATUS, 'Disponível') as STATUS,
       i.ANONIMO,
+      COALESCE(i.VISIBILIDADE, 'Publica') as VISIBILIDADE,
+      i.MOTIVO_MODERACAO,
       i.CREATED_AT,
       u.NOME as NOME_AUTOR,
       u.EMAIL as EMAIL_AUTOR,
@@ -269,6 +273,88 @@ async function ocultarIdeia(id) {
   return resultado;
 }
 
+// ---- Ideias ocultadas pela moderação e reformulação ----
+// VISIBILIDADE: 'Publica' (todos veem) | 'Oculta' (moderação escondeu) | 'EmRevisao' (autor reenviou)
+
+// Ideias do próprio autor que estão ocultas ou em revisão (aba "Minhas ideias ocultadas").
+async function listarOcultasDoUsuario(usuarioId) {
+  const [ideias] = await connection.query(
+    `SELECT
+      i.ID,
+      i.USUARIOS_ID,
+      i.TITULO,
+      i.DESCRICAO,
+      COALESCE(i.CATEGORIA, 'Geral') as CATEGORIA,
+      COALESCE(i.STATUS, 'Disponível') as STATUS,
+      i.ANONIMO,
+      i.VISIBILIDADE,
+      i.MOTIVO_MODERACAO,
+      i.CREATED_AT
+    FROM IDEIAS i
+    WHERE i.USUARIOS_ID = ?
+      AND i.VISIBILIDADE IN ('Oculta', 'EmRevisao')
+    ORDER BY i.CREATED_AT DESC`,
+    [usuarioId],
+  );
+  return ideias;
+}
+
+// O "WHERE ... VISIBILIDADE = 'Oculta'" garante que só muda se ainda estiver oculta
+// (clique duplo ou duas abas abertas não causam problema).
+async function reenviarParaRevisao(id) {
+  const [resultado] = await connection.query(
+    `UPDATE IDEIAS
+     SET VISIBILIDADE = 'EmRevisao'
+     WHERE ID = ? AND VISIBILIDADE = 'Oculta'`,
+    [id],
+  );
+  return resultado;
+}
+
+// Fila do administrador: as ideias mais antigas primeiro.
+async function listarEmRevisao() {
+  const [ideias] = await connection.query(
+    `SELECT
+      i.ID,
+      i.USUARIOS_ID,
+      i.TITULO,
+      i.DESCRICAO,
+      COALESCE(i.CATEGORIA, 'Geral') as CATEGORIA,
+      COALESCE(i.STATUS, 'Disponível') as STATUS,
+      i.ANONIMO,
+      i.VISIBILIDADE,
+      i.MOTIVO_MODERACAO,
+      i.CREATED_AT,
+      u.NOME as NOME_AUTOR,
+      u.EMAIL as EMAIL_AUTOR
+    FROM IDEIAS i
+    JOIN USUARIOS u ON i.USUARIOS_ID = u.ID
+    WHERE i.VISIBILIDADE = 'EmRevisao'
+    ORDER BY i.CREATED_AT ASC`,
+  );
+  return ideias;
+}
+
+async function aprovarRevisao(id) {
+  const [resultado] = await connection.query(
+    `UPDATE IDEIAS
+     SET VISIBILIDADE = 'Publica', MOTIVO_MODERACAO = NULL
+     WHERE ID = ? AND VISIBILIDADE = 'EmRevisao'`,
+    [id],
+  );
+  return resultado;
+}
+
+async function rejeitarRevisao(id, motivo) {
+  const [resultado] = await connection.query(
+    `UPDATE IDEIAS
+     SET VISIBILIDADE = 'Oculta', MOTIVO_MODERACAO = ?
+     WHERE ID = ? AND VISIBILIDADE = 'EmRevisao'`,
+    [motivo, id],
+  );
+  return resultado;
+}
+
 export default {
   criarIdeia,
   listarIdeias,
@@ -278,4 +364,9 @@ export default {
   deletarideia,
   listarIdeiasPorUsuario,
   ocultarIdeia,
+  listarOcultasDoUsuario,
+  reenviarParaRevisao,
+  listarEmRevisao,
+  aprovarRevisao,
+  rejeitarRevisao,
 };

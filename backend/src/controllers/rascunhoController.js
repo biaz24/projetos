@@ -1,18 +1,31 @@
 import rascunhoService from "../services/rascunhoService.js";
+import { textoComLimite, idPositivo } from "../utils/validacao.js";
+
+const TITULO_MAX = 100; // limite da coluna TITULO no banco
+const DESCRICAO_MAX = 5000;
+
+// Retorna { titulo, descricao } limpos ou null se algo estiver inválido.
+function lerCamposDoRascunho(body) {
+  const titulo = textoComLimite((body ?? {}).titulo, { min: 1, max: TITULO_MAX });
+  const descricao = textoComLimite((body ?? {}).descricao, { min: 1, max: DESCRICAO_MAX });
+  return titulo && descricao ? { titulo, descricao } : null;
+}
+
+const MSG_CAMPOS = `Título (até ${TITULO_MAX} caracteres) e descrição (até ${DESCRICAO_MAX}) são obrigatórios`;
 
 async function criarRascunho(req, res) {
   try {
     const usuarioId = req.user.id;
-    const { titulo, descricao } = req.body;
+    const campos = lerCamposDoRascunho(req.body);
 
-    if (!titulo || !descricao) {
-      return res.status(400).json({ erro: "Título e descrição são obrigatórios" });
+    if (!campos) {
+      return res.status(400).json({ erro: MSG_CAMPOS });
     }
 
     const resultado = await rascunhoService.criarRascunho(
       usuarioId,
-      titulo.trim(),
-      descricao.trim(),
+      campos.titulo,
+      campos.descricao,
     );
 
     return res.status(201).json({
@@ -38,8 +51,11 @@ async function listarMeusRascunhos(req, res) {
 async function atualizarRascunho(req, res) {
   try {
     const usuarioId = req.user.id;
-    const { id } = req.params;
-    const { titulo, descricao } = req.body;
+    const id = idPositivo(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({ erro: "ID do rascunho inválido" });
+    }
 
     const rascunhoExistente = await rascunhoService.buscarPorId(id);
     if (!rascunhoExistente) {
@@ -50,11 +66,12 @@ async function atualizarRascunho(req, res) {
       return res.status(403).json({ erro: "Sem permissão para alterar este rascunho" });
     }
 
-    if (!titulo || !descricao) {
-      return res.status(400).json({ erro: "Título e descrição são obrigatórios" });
+    const campos = lerCamposDoRascunho(req.body);
+    if (!campos) {
+      return res.status(400).json({ erro: MSG_CAMPOS });
     }
 
-    await rascunhoService.atualizarRascunho(id, titulo, descricao);
+    await rascunhoService.atualizarRascunho(id, campos.titulo, campos.descricao);
 
     return res.status(200).json({ mensagem: "Rascunho atualizado com sucesso" });
   } catch (erro) {
@@ -65,7 +82,11 @@ async function atualizarRascunho(req, res) {
 async function deletarRascunho(req, res) {
   try {
     const usuarioId = req.user.id;
-    const { id } = req.params;
+    const id = idPositivo(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({ erro: "ID do rascunho inválido" });
+    }
 
     const rascunhoExistente = await rascunhoService.buscarPorId(id);
     if (!rascunhoExistente) {

@@ -81,7 +81,7 @@ async function adicionarColunaSeNaoExistir(tabela, coluna, definicao) {
       CREATE TABLE IF NOT EXISTS REFRESH_TOKENS (
         ID INT AUTO_INCREMENT PRIMARY KEY,
         USUARIOS_ID INT NOT NULL,
-        TOKEN VARCHAR(255) NOT NULL UNIQUE,
+        TOKEN_HASH CHAR(64) NOT NULL UNIQUE,
         EXPIRES_AT DATETIME NOT NULL,
         CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         REVOKED_AT DATETIME NULL,
@@ -95,6 +95,130 @@ async function adicionarColunaSeNaoExistir(tabela, coluna, definicao) {
     } catch (_) {
       // Ignora se tabela não existir ainda ou não puder ser modificada
     }
+
+    // 10. Notificações (sininho do site) e motivo da moderação nas ideias ocultadas
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS NOTIFICACOES (
+        ID INT AUTO_INCREMENT PRIMARY KEY,
+        USUARIOS_ID INT NOT NULL,
+        TIPO VARCHAR(50) NOT NULL,
+        TITULO VARCHAR(150) NOT NULL,
+        MENSAGEM TEXT NOT NULL,
+        LIDA BOOLEAN NOT NULL DEFAULT FALSE,
+        CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_notificacoes_usuario FOREIGN KEY (USUARIOS_ID) REFERENCES USUARIOS(ID) ON DELETE CASCADE
+      )
+    `);
+    // Ideia a que a notificação se refere (sem chave estrangeira: a ideia pode ser removida)
+    await adicionarColunaSeNaoExistir("NOTIFICACOES", "IDEIAS_ID", "INT NULL");
+    // Conversa a que a notificação se refere (o sininho abre direto essa conversa)
+    await adicionarColunaSeNaoExistir("NOTIFICACOES", "CONTATO_ID", "INT NULL");
+    await adicionarColunaSeNaoExistir("IDEIAS", "MOTIVO_MODERACAO", "TEXT NULL");
+    // Banimento: conta suspensa pela moderação (BANIDO_EM preenchido = não consegue entrar)
+    await adicionarColunaSeNaoExistir("USUARIOS", "BANIDO_EM", "DATETIME NULL");
+    await adicionarColunaSeNaoExistir("USUARIOS", "MOTIVO_BANIMENTO", "VARCHAR(500) NULL");
+
+    // Confirmação de e-mail. Quem já tinha conta antes desta atualização continua
+    // entrando normalmente: ao criar a coluna, o valor padrão (agora) preenche as contas
+    // existentes. Contas novas gravam NULL de propósito (veja usuarioModel).
+    await adicionarColunaSeNaoExistir(
+      "USUARIOS",
+      "EMAIL_CONFIRMADO_EM",
+      "DATETIME NULL DEFAULT CURRENT_TIMESTAMP",
+    );
+    try {
+      await connection.query("ALTER TABLE USUARIOS ALTER COLUMN EMAIL_CONFIRMADO_EM DROP DEFAULT");
+    } catch (err) {
+      console.warn("Aviso de auto-migration EMAIL_CONFIRMADO_EM:", err.message);
+    }
+    // Aceite dos Termos de Uso / Política de Privacidade (LGPD): quando e qual versão
+    await adicionarColunaSeNaoExistir("USUARIOS", "TERMOS_ACEITOS_EM", "DATETIME NULL");
+    await adicionarColunaSeNaoExistir("USUARIOS", "TERMOS_VERSAO", "VARCHAR(20) NULL");
+    // Momento (em segundos, horário Unix) da última troca de senha: tokens mais antigos deixam de valer
+    await adicionarColunaSeNaoExistir("USUARIOS", "SENHA_ALTERADA_TS", "BIGINT NULL");
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS CONFIRMACAO_EMAIL (
+        ID INT AUTO_INCREMENT PRIMARY KEY,
+        USUARIOS_ID INT NOT NULL,
+        TOKEN_HASH CHAR(64) NOT NULL UNIQUE,
+        EMAIL VARCHAR(255) NOT NULL,
+        EXPIRA_AT DATETIME NOT NULL,
+        CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_confirmacao_usuario FOREIGN KEY (USUARIOS_ID) REFERENCES USUARIOS(ID) ON DELETE CASCADE
+      )
+    `);
+
+    // Registro de auditoria: qual administrador tomou cada decisão de moderação
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS LOG_MODERACAO (
+        ID INT AUTO_INCREMENT PRIMARY KEY,
+        ADMIN_ID INT NOT NULL,
+        ACAO VARCHAR(50) NOT NULL,
+        IDEIAS_ID INT NULL,
+        DENUNCIA_ID INT NULL,
+        DETALHE TEXT NULL,
+        CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 11. Contato entre interessado e autor da ideia: pedido, chat privado e denúncia de conversa
+    // Sem chave estrangeira em IDEIAS de propósito: a conversa (e uma denúncia sobre ela)
+    // não some se a ideia for excluída; por isso o título da ideia é copiado para cá.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS CONTATOS (
+        ID INT AUTO_INCREMENT PRIMARY KEY,
+        IDEIAS_ID INT NOT NULL,
+        IDEIA_TITULO VARCHAR(150) NOT NULL,
+        AUTOR_ID INT NOT NULL,
+        INTERESSADO_ID INT NOT NULL,
+        ANONIMO BOOLEAN NOT NULL DEFAULT FALSE,
+        STATUS VARCHAR(20) NOT NULL DEFAULT 'Pendente',
+        AUTOR_LIDO_ATE INT NOT NULL DEFAULT 0,
+        INTERESSADO_LIDO_ATE INT NOT NULL DEFAULT 0,
+        ENCERRADO_POR INT NULL,
+        CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UPDATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT fk_contatos_autor FOREIGN KEY (AUTOR_ID) REFERENCES USUARIOS(ID) ON DELETE CASCADE,
+        CONSTRAINT fk_contatos_interessado FOREIGN KEY (INTERESSADO_ID) REFERENCES USUARIOS(ID) ON DELETE CASCADE,
+        CONSTRAINT unique_contato_ideia_interessado UNIQUE (IDEIAS_ID, INTERESSADO_ID)
+      )
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS MENSAGENS_CONTATO (
+        ID INT AUTO_INCREMENT PRIMARY KEY,
+        CONTATO_ID INT NOT NULL,
+        REMETENTE_ID INT NOT NULL,
+        TEXTO TEXT NOT NULL,
+        CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_mensagens_contato FOREIGN KEY (CONTATO_ID) REFERENCES CONTATOS(ID) ON DELETE CASCADE,
+        CONSTRAINT fk_mensagens_remetente FOREIGN KEY (REMETENTE_ID) REFERENCES USUARIOS(ID) ON DELETE CASCADE,
+        INDEX idx_mensagens_contato (CONTATO_ID, ID)
+      )
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS DENUNCIAS_CONTATO (
+        ID INT AUTO_INCREMENT PRIMARY KEY,
+        CONTATO_ID INT NOT NULL,
+        DENUNCIANTE_ID INT NOT NULL,
+        MOTIVO VARCHAR(100) NOT NULL,
+        DESCRICAO TEXT NULL,
+        STATUS VARCHAR(20) NOT NULL DEFAULT 'Pendente',
+        MEDIDA VARCHAR(30) NULL,
+        JUSTIFICATIVA TEXT NULL,
+        ADMIN_ID INT NULL,
+        CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        RESOLVIDA_AT DATETIME NULL,
+        CONSTRAINT fk_denuncias_contato FOREIGN KEY (CONTATO_ID) REFERENCES CONTATOS(ID) ON DELETE CASCADE,
+        CONSTRAINT fk_denuncias_contato_denunciante FOREIGN KEY (DENUNCIANTE_ID) REFERENCES USUARIOS(ID) ON DELETE CASCADE
+      )
+    `);
+
+    // 12. Limpeza: remove tokens de sessão e de recuperação de senha que já expiraram
+    await connection.query("DELETE FROM REFRESH_TOKENS WHERE EXPIRES_AT < NOW()");
+    await connection.query("DELETE FROM RECUPERACAO_SENHA WHERE EXPIRA_AT < NOW()");
   } catch (err) {
     console.warn("Aviso de auto-migration:", err.message);
   }

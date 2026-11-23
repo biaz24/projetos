@@ -226,7 +226,15 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ ideia, onToggleSave }) => {
         <div style={{ flex: 1, minWidth: "220px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "6px" }}>
             <h3
+              role="link"
+              tabIndex={0}
               onClick={() => navigate(`/ideia/${ideia.ID}`)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate(`/ideia/${ideia.ID}`);
+                }
+              }}
               style={{
                 fontSize: "14px",
                 fontWeight: "bold",
@@ -324,6 +332,8 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ ideia, onToggleSave }) => {
               onClick={handleToggleBookmark}
               disabled={savingBookmark}
               title={isSaved ? "Remover dos salvos" : "Salvar ideia"}
+              aria-label={isSaved ? "Remover dos salvos" : "Salvar ideia"}
+              aria-pressed={isSaved}
               style={{
                 background: "none",
                 border: "none",
@@ -340,6 +350,7 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ ideia, onToggleSave }) => {
             <button
               type="button"
               onClick={handleToggleComments}
+              aria-label={`Comentários (${comentariosCount})`}
               style={{
                 background: "none",
                 border: "none",
@@ -353,12 +364,14 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ ideia, onToggleSave }) => {
               }}
             >
               <i className="fa-regular fa-comment" style={{ fontSize: "14px" }}></i>
-              <span style={{ fontWeight: "bold" }}>{comentariosCount}</span>
+              <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{comentariosCount}</span>
             </button>
 
             {/* Visualizações */}
             <div
               onClick={() => navigate(`/ideia/${ideia.ID}`)}
+              role="img"
+              aria-label={`${(ideia as any).visualizacoes_count || 1} visualizações`}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -369,7 +382,7 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ ideia, onToggleSave }) => {
               }}
             >
               <i className="fa-regular fa-eye" style={{ fontSize: "14px" }}></i>
-              <span style={{ fontWeight: "bold" }}>{(ideia as any).visualizacoes_count || 1}</span>
+              <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{(ideia as any).visualizacoes_count || 1}</span>
             </div>
           </div>
 

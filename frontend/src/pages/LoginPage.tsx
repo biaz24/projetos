@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { ReenviarConfirmacao } from "../components/ReenviarConfirmacao";
 import "../../css/style.css";
 
 export const LoginPage: React.FC = () => {
@@ -13,6 +14,7 @@ export const LoginPage: React.FC = () => {
     isError: boolean;
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [precisaConfirmar, setPrecisaConfirmar] = useState(false);
 
   // Criando variável para usar o useRef:
   const emailRef = useRef<HTMLInputElement>(null);
@@ -29,6 +31,7 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
+    setPrecisaConfirmar(false);
     setSubmitting(true);
 
     try {
@@ -38,6 +41,7 @@ export const LoginPage: React.FC = () => {
         navigate("/home");
       }, 400);
     } catch (err: any) {
+      setPrecisaConfirmar(err?.codigo === "EMAIL_NAO_CONFIRMADO");
       setMessage({
         text: err.message || "E-mail ou senha incorretos!",
         isError: true,
@@ -68,7 +72,7 @@ export const LoginPage: React.FC = () => {
 
           <img
             src="/img/imagem1.png"
-            alt="Imagem do sistema"
+            alt="" aria-hidden="true"
             className="imagem-login"
           />
         </div>
@@ -133,12 +137,18 @@ export const LoginPage: React.FC = () => {
                 </p>
               )}
 
+              {precisaConfirmar && <ReenviarConfirmacao email={email.trim().toLowerCase()} />}
+
               <div className="divisa"></div>
             </form>
 
             <div className="register">
               Não tem login?{" "} <Link to="/cadastro">Cadastre-se</Link>
             </div>
+
+            <p style={{ textAlign: "center", fontSize: "12px", margin: "14px 0 0" }}>
+              <Link to="/termos">Termos de Uso</Link> · <Link to="/privacidade">Política de Privacidade</Link>
+            </p>
           </div>
         </div>
       </div>

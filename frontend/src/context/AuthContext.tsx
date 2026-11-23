@@ -55,10 +55,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const cadastrar = async (nome: string, email: string, senha: string) => {
+  const cadastrar = async (nome: string, email: string, senha: string, aceitoTermos: boolean) => {
     await fetchApi("/usuarios", {
       method: "POST",
-      body: JSON.stringify({ nome, email, senha }),
+      body: JSON.stringify({ nome, email, senha, aceitoTermos }),
     });
   };
 

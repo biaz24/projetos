@@ -1,8 +1,16 @@
 import curtidaService from "../services/curtidaService.js";
+import ideiaService from "../services/ideiaService.js";
+import { idPositivo } from "../utils/validacao.js";
+
+// Só ideias que existem e estão visíveis podem receber curtidas.
+async function ideiaExisteEVisivel(ideiaId) {
+  const ideia = await ideiaService.buscarIdeiaPorId(ideiaId);
+  return Boolean(ideia && (!ideia.VISIBILIDADE || ideia.VISIBILIDADE === "Publica"));
+}
 
 async function curtirIdeia(req, res) {
   try {
-    const { ideiaId } = req.body;
+    const ideiaId = idPositivo((req.body ?? {}).ideiaId);
     const usuarioId = req.user.id;
 
     if (!ideiaId) {
@@ -11,7 +19,24 @@ async function curtirIdeia(req, res) {
       });
     }
 
-    await curtidaService.curtirIdeia(ideiaId, usuarioId);
+    if (!(await ideiaExisteEVisivel(ideiaId))) {
+      return res.status(404).json({ erro: "Ideia não encontrada" });
+    }
+
+    // Regra do projeto: uma curtida por usuário em cada ideia.
+    // Curtir de novo não dá erro, só devolve o total atual.
+    const jaCurtiu = await curtidaService.usuarioJaCurtiu(ideiaId, usuarioId);
+
+    if (!jaCurtiu) {
+      try {
+        await curtidaService.curtirIdeia(ideiaId, usuarioId);
+      } catch (erroDeInsercao) {
+        // Dois cliques ao mesmo tempo: a segunda inserção bate na regra de unicidade do banco.
+        if (erroDeInsercao.code !== "ER_DUP_ENTRY") {
+          throw erroDeInsercao;
+        }
+      }
+    }
 
     const total = await curtidaService.contarCurtidas(ideiaId);
 
@@ -31,8 +56,12 @@ async function curtirIdeia(req, res) {
 
 async function descurtirIdeia(req, res) {
   try {
-    const { ideiaId } = req.params;
+    const ideiaId = idPositivo(req.params.ideiaId);
     const usuarioId = req.user.id;
+
+    if (!ideiaId) {
+      return res.status(400).json({ erro: "ID da ideia inválido" });
+    }
 
     await curtidaService.descurtirIdeia(ideiaId, usuarioId);
 
@@ -54,8 +83,12 @@ async function descurtirIdeia(req, res) {
 
 async function verificarCurtida(req, res) {
   try {
-    const { ideiaId } = req.params;
+    const ideiaId = idPositivo(req.params.ideiaId);
     const usuarioId = req.user.id;
+
+    if (!ideiaId) {
+      return res.status(400).json({ erro: "ID da ideia inválido" });
+    }
 
     const curtido = await curtidaService.usuarioJaCurtiu(ideiaId, usuarioId);
 
@@ -73,7 +106,11 @@ async function verificarCurtida(req, res) {
 
 async function listarQuemCurtiu(req, res) {
   try {
-    const { ideiaId } = req.params;
+    const ideiaId = idPositivo(req.params.ideiaId);
+
+    if (!ideiaId) {
+      return res.status(400).json({ erro: "ID da ideia inválido" });
+    }
 
     const usuarios = await curtidaService.listarQuemCurtiu(ideiaId);
 
@@ -89,7 +126,11 @@ async function listarQuemCurtiu(req, res) {
 
 async function contarCurtidas(req, res) {
   try {
-    const { ideiaId } = req.params;
+    const ideiaId = idPositivo(req.params.ideiaId);
+
+    if (!ideiaId) {
+      return res.status(400).json({ erro: "ID da ideia inválido" });
+    }
 
     const total = await curtidaService.contarCurtidas(ideiaId);
 

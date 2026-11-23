@@ -59,7 +59,7 @@ export const EsqueceuSenhaPage: React.FC = () => {
 
           <img
             src="/img/imagem1.png"
-            alt="Ilustração de recuperação"
+            alt="" aria-hidden="true"
             className="imagem-recuperacao"
           />
         </div>

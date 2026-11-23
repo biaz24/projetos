@@ -1,15 +1,31 @@
 import denunciaService from "../services/denunciaService.js";
+import logModeracaoModel from "../models/logModeracaoModel.js";
+import { textoComLimite, idPositivo } from "../utils/validacao.js";
 
 async function criarDenuncia(req, res) {
   try {
-    const { ideiaId, motivo, descricao } = req.body;
+    const body = req.body ?? {};
     const usuarioId = req.user.id;
+
+    const ideiaId = idPositivo(body.ideiaId);
+    const motivo = textoComLimite(body.motivo, { min: 1, max: 100 }); // coluna MOTIVO: 100
+    const descricao =
+      body.descricao === undefined || body.descricao === null || body.descricao === ""
+        ? null
+        : textoComLimite(body.descricao, { min: 1, max: 2000 });
 
     if (!ideiaId || !motivo) {
       return res.status(400).json({
-        erro: "Ideia e motivo são obrigatórios",
+        erro: "Ideia e motivo são obrigatórios (motivo com até 100 caracteres)",
       });
     }
+
+    if (body.descricao && descricao === null) {
+      return res.status(400).json({
+        erro: "A descrição da denúncia pode ter no máximo 2000 caracteres",
+      });
+    }
+
     const ideia = await denunciaService.buscarAutorDaIdeia(ideiaId);
 
     if (!ideia) {
@@ -44,11 +60,26 @@ async function criarDenuncia(req, res) {
   }
 }
 
+const MSG_PROPRIA_IDEIA =
+  "Você não pode analisar uma denúncia sobre a sua própria ideia. Peça a outro administrador.";
+
+// A denúncia é sobre uma ideia do próprio administrador que está logado?
+function ehPropriaIdeia(denuncia, adminId) {
+  return (
+    denuncia?.AUTOR_ID !== null &&
+    denuncia?.AUTOR_ID !== undefined &&
+    Number(denuncia.AUTOR_ID) === Number(adminId)
+  );
+}
+
 async function listarDenuncias(req, res) {
   try {
     const denuncias = await denunciaService.listarDenuncias();
 
-    return res.status(200).json(denuncias);
+    // PROPRIA_IDEIA deixa o site desativar os botões de decisão
+    return res.status(200).json(
+      denuncias.map((d) => ({ ...d, PROPRIA_IDEIA: ehPropriaIdeia(d, req.user.id) })),
+    );
   } catch (erro) {
     console.error("Erro ao listar denúncias:", erro);
 
@@ -85,12 +116,14 @@ async function buscarDenunciaPorId(req, res) {
       });
     }
 
-    if (denuncia.STATUS === "Pendente") {
+    if (denuncia.STATUS === "Pendente" && !ehPropriaIdeia(denuncia, req.user.id)) {
       await denunciaService.atualizarStatus(id, "Em análise");
       denuncia.STATUS = "Em análise";
     }
 
-    return res.status(200).json(denuncia);
+    return res
+      .status(200)
+      .json({ ...denuncia, PROPRIA_IDEIA: ehPropriaIdeia(denuncia, req.user.id) });
   } catch (erro) {
     console.error("Erro ao buscar denúncia:", erro);
 
@@ -113,6 +146,33 @@ async function atualizarStatus(req, res) {
       });
     }
 
+    // "Resolvida" só existe pelo botão "Concluir análise" (que exige resultado,
+    // medida e justificativa e registra quem decidiu). Sem isso, o status serviria
+    // para encerrar uma denúncia sem análise nenhuma.
+    if (status === "Resolvida") {
+      return res.status(400).json({
+        erro: 'Para resolver a denúncia use "Concluir análise".',
+      });
+    }
+
+    const denuncia = await denunciaService.buscarDenunciaPorId(id);
+
+    if (!denuncia) {
+      return res.status(404).json({
+        erro: "Denúncia não encontrada",
+      });
+    }
+
+    if (ehPropriaIdeia(denuncia, req.user.id)) {
+      return res.status(403).json({ erro: MSG_PROPRIA_IDEIA });
+    }
+
+    if (denuncia.STATUS === "Resolvida") {
+      return res.status(409).json({
+        erro: "Esta denúncia já foi resolvida e não pode ser reaberta.",
+      });
+    }
+
     const resultado = await denunciaService.atualizarStatus(id, status);
 
     if (resultado.affectedRows === 0) {
@@ -120,6 +180,12 @@ async function atualizarStatus(req, res) {
         erro: "Denúncia não encontrada",
       });
     }
+
+    await logModeracaoModel.registrar(req.user.id, "denuncia_status", {
+      denunciaId: Number(id),
+      ideiaId: denuncia.IDEIAS_ID,
+      detalhe: `Status alterado para "${status}"`,
+    });
 
     return res.status(200).json({
       mensagem: "Status da denúncia atualizado com sucesso",
@@ -147,6 +213,10 @@ async function salvarRascunho(req, res) {
       return res.status(404).json({
         erro: "Denúncia não encontrada",
       });
+    }
+
+    if (ehPropriaIdeia(denuncia, adminId)) {
+      return res.status(403).json({ erro: MSG_PROPRIA_IDEIA });
     }
 
     const resposta = await denunciaService.salvarRascunho(
@@ -247,11 +317,20 @@ async function concluirAnalise(req, res) {
       });
     }
 
+    await logModeracaoModel.registrar(adminId, "denuncia_concluida", {
+      denunciaId: Number(id),
+      detalhe: `${resultado} / ${medidaAplicada}: ${justificativa.trim()}`,
+    });
+
     return res.status(200).json({
       mensagem: "Denúncia concluída com sucesso!",
       status: "Resolvida",
     });
   } catch (erro) {
+    if (erro.status === 403) {
+      return res.status(403).json({ erro: erro.message });
+    }
+
     console.error("Erro ao concluir análise:", erro);
 
     if (erro.message === "Denúncia não encontrada.") {

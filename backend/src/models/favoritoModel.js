@@ -35,6 +35,7 @@ async function listarMeusFavoritos(usuarioId) {
     JOIN IDEIAS i ON f.IDEIAS_ID = i.ID
     JOIN USUARIOS u ON i.USUARIOS_ID = u.ID
     WHERE f.USUARIOS_ID = ?
+      AND COALESCE(i.VISIBILIDADE, 'Publica') = 'Publica'
     ORDER BY f.CREATED_AT DESC`,
     [usuarioId],
   );

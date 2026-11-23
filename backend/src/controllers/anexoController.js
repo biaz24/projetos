@@ -1,24 +1,13 @@
 import anexoService from "../services/anexoService.js";
 import ideiaService from "../services/ideiaService.js";
+import { idPositivo } from "../utils/validacao.js";
+import { podeVerIdeia } from "../utils/ideiaPublica.js";
 
+// O dono da ideia é conferido ANTES do envio, em routes/anexoRoutes.js
+// (assim quem não é o dono nem chega a gravar arquivo no servidor).
 async function enviarAnexo(req, res) {
   try {
-    const { ideiaId } = req.params;
-    const usuarioId = req.user.id;
-
-    const ideia = await ideiaService.buscarIdeiaPorId(ideiaId);
-
-    if (!ideia) {
-      return res.status(404).json({
-        erro: "Ideia não encontrada",
-      });
-    }
-
-    if (Number(ideia.USUARIOS_ID) !== Number(usuarioId)) {
-      return res.status(403).json({
-        erro: "Você não pode anexar arquivos a uma ideia de outro usuário",
-      });
-    }
+    const ideiaId = idPositivo(req.params.ideiaId);
 
     if (!ideiaId) {
       return res.status(400).json({
@@ -64,9 +53,20 @@ async function enviarAnexo(req, res) {
   }
 }
 
+// Os anexos de uma ideia oculta pela moderação só aparecem para o autor e para administradores.
 async function listarAnexosPorIdeia(req, res) {
   try {
-    const { ideiaId } = req.params;
+    const ideiaId = idPositivo(req.params.ideiaId);
+
+    if (!ideiaId) {
+      return res.status(400).json({ erro: "ID da ideia inválido" });
+    }
+
+    const ideia = await ideiaService.buscarIdeiaPorId(ideiaId);
+
+    if (!podeVerIdeia(ideia, req.user)) {
+      return res.status(404).json({ erro: "Ideia não encontrada" });
+    }
 
     const anexos = await anexoService.listarAnexosPorIdeia(ideiaId);
 
@@ -82,11 +82,23 @@ async function listarAnexosPorIdeia(req, res) {
 
 async function buscarAnexoPorId(req, res) {
   try {
-    const { id } = req.params;
+    const id = idPositivo(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({ erro: "ID do anexo inválido" });
+    }
 
     const anexo = await anexoService.buscarAnexoPorId(id);
 
     if (!anexo) {
+      return res.status(404).json({
+        erro: "Anexo não encontrado",
+      });
+    }
+
+    const ideia = await ideiaService.buscarIdeiaPorId(anexo.IDEIAS_ID);
+
+    if (!podeVerIdeia(ideia, req.user)) {
       return res.status(404).json({
         erro: "Anexo não encontrado",
       });

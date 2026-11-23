@@ -83,9 +83,9 @@ async function consumirTokenEAtualizarSenha(tokenHash, senhaHash) {
 
     const [resultadoSenha] = await conn.query(
       `UPDATE USUARIOS
-       SET SENHA = ?
+       SET SENHA = ?, SENHA_ALTERADA_TS = ?
        WHERE ID = ?`,
-      [senhaHash, registro.USUARIOS_ID],
+      [senhaHash, Math.floor(Date.now() / 1000), registro.USUARIOS_ID],
     );
 
     if (resultadoSenha.affectedRows !== 1) {
